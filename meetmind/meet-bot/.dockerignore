@@ -1,0 +1,9 @@
+node_modules
+tmp
+google_user_data
+sesion_real
+npm-debug.log
+.env
+.env.*
+Dockerfile
+.dockerignore
