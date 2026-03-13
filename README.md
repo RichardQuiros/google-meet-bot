@@ -7,6 +7,11 @@ The repository has two services:
 - `meet-control-server`: control plane, session history, command API, SSE stream, lightweight SDK.
 - `meet-bot`: runtime supervisor and runtime agents that launch Chrome with Playwright, join Meet, observe the call, and execute actions.
 
+## Documentation
+
+- `ARQUITECTURA.md`: arquitectura general, protocolos, flujos y decisiones tecnicas del sistema.
+- `README_IA.md`: integracion recomendada para agentes de IA y consumo near-live.
+
 ## What Works
 
 - Join a Google Meet session
@@ -16,6 +21,8 @@ The repository has two services:
 - Capture meeting audio and emit `audio.transcript.detected`
 - Capture video frames and emit `video.frame.detected`
 - Speak into the meeting through TTS + virtual microphone routing
+- Inject agent audio directly into the meeting through RTP without waiting for TTS synthesis
+- Relay meeting audio and JPEG video frames over RTP for ultra-low-latency agent pipelines
 - Stream everything to an external agent through SSE
 
 ## Recommended Deployment
@@ -107,15 +114,16 @@ GET http://localhost:3001/meetings/demo-meeting/events/stream?snapshotLimit=0
 
 ## Docker Behavior
 
-The compose file is tuned for agent consumption with low latency defaults:
+The compose file is tuned for agent consumption with lower latency defaults:
 
-- command long-polling enabled
-- chat polling at `500ms`
-- caption polling at `400ms`
-- audio segments at `2500ms`
-- video frame polling at `700ms`
+- command long-polling at `1000ms`
+- chat polling at `250ms`
+- caption polling at `250ms`
+- audio segments at `1200ms`
+- video frame polling at `250ms`
 - video activity disabled by default to favor frame throughput
 - JPEG quality lowered to reduce payload size
+- RTP audio input exposed on `5004/udp` by default for direct agent speech injection
 
 The `meet-bot` container also prepares virtual audio devices automatically:
 
@@ -124,6 +132,15 @@ The `meet-bot` container also prepares virtual audio devices automatically:
 - microphone label in Meet: `MeetBot Virtual Microphone`
 
 So `speech.say` is routed to the virtual sink, and the runtime tries to select `MeetBot Virtual Microphone` inside Meet before speaking.
+If you want to bypass `speech.say`, the runtime can also listen for direct RTP audio on `REALTIME_AGENT_AUDIO_RTP_PORT` and play it into that same sink.
+
+Optional RTP relay environment variables:
+
+- `REALTIME_PUBLIC_HOST=localhost`
+- `REALTIME_AGENT_AUDIO_RTP_PORT=5004`
+- `REALTIME_MEETING_AUDIO_RTP_URL=rtp://host.docker.internal:5006`
+- `REALTIME_VIDEO_RTP_URL=rtp://host.docker.internal:5008`
+- `REALTIME_VIDEO_FPS=4`
 
 State is persisted in the Docker volume:
 
@@ -189,7 +206,7 @@ The control server ships a lightweight SDK at:
 - `meet-control-server/src/sdk/MeetAgent.ts`
 - `meet-control-server/src/sdk/AgentBridge.ts`
 
-The lowest-latency pattern is:
+The compatibility path is still SSE + REST:
 
 ```ts
 import { MeetAgent, startAgentBridge } from './src/sdk/index.js';
@@ -233,12 +250,40 @@ Key SDK helpers:
 - `startLiveVideoFrames(...)`
 - `startLiveSession(...)`
 - `startAgentBridge(...)`
+- `waitForMediaTransport(...)`
+- `RtpAudioInputSender`
+
+For ultra-low-latency audio, wait for `media.transport.ready` and bind your provider audio stream directly:
+
+```ts
+import { MeetAgent, RtpAudioInputSender } from './src/sdk/index.js';
+
+const agent = new MeetAgent({
+  baseUrl: 'http://localhost:3001',
+  meetingId: 'demo-meeting',
+  botId: 'bot-01'
+});
+
+await agent.connect({ snapshotLimit: 0 });
+const transport = await agent.waitForMediaTransport();
+
+if (transport.payload.transport.audioInput) {
+  const sender = new RtpAudioInputSender(transport.payload.transport.audioInput, {
+    targetHost: '127.0.0.1'
+  });
+
+  // Feed PCM16 mono chunks from Gemini Live / ADK / PersonaPlex here.
+  // sender.writePcm(chunk);
+}
+```
 
 Reference material for AI integrations:
 
 - `README_IA.md`
 - `meet-control-server/examples/generic-live-agent.example.ts`
+- `meet-control-server/examples/low-latency-rtp-agent.example.ts`
 - `npm --prefix meet-control-server run example:agent`
+- `npm --prefix meet-control-server run example:rtp-agent`
 
 ## Postman
 
@@ -293,4 +338,6 @@ npm run dev
 - Google Meet access still depends on the account and meeting policy.
 - Some meetings allow guest join immediately; others may require a previously trusted profile or admission.
 - The Docker volume persists the Playwright profile, which is important for keeping browser trust and Meet device preferences across restarts.
-- Video transport is JPEG-over-HTTP today. It is tuned for near-live agent consumption, but it is not WebRTC streaming.
+- The SSE/REST path still serves video as JPEG-over-HTTP for compatibility.
+- The new low-latency media plane uses RTP for direct agent audio input plus outbound meeting audio/video relay.
+- WebRTC is not implemented natively in this repo yet; the intended pattern is to bridge provider WebRTC/WebSocket audio to the RTP helpers exposed here.

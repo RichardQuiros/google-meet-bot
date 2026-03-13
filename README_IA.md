@@ -7,6 +7,7 @@ Este documento esta pensado para equipos que van a usar un agente externo, por e
 - recibir texto e imagenes casi en tiempo real
 - decidir acciones
 - devolver respuestas por chat o por voz
+- emitir audio PCM de forma continua para respuesta ultrarrapida
 
 ## Modelo de Integracion
 
@@ -24,6 +25,12 @@ El sistema expone dos capas:
 - expone SSE para entradas live
 - expone REST para comandos y consultas
 - incluye SDK y un bridge generico para agentes
+
+3. Plano de medios low-latency:
+
+- `meet-bot` puede abrir RTP para audio del meeting
+- `meet-bot` puede recibir audio RTP del agente y reproducirlo directo en Meet
+- `meet-bot` puede reenviar frames JPEG por RTP a baja frecuencia
 
 ## Formas de Consumirlo
 
@@ -66,6 +73,17 @@ Archivos:
 - `meet-control-server/examples/generic-live-agent.example.ts`
 
 Esta capa convierte los eventos del meeting a un contrato simple de IA y ejecuta automaticamente las acciones que el agente devuelva.
+
+### Opcion 4: RTP directo para audio/video
+
+Es la opcion recomendada cuando buscas la menor latencia posible.
+
+Flujo:
+
+- SSE sigue siendo el canal de control y texto
+- `media.transport.ready` anuncia el descriptor RTP disponible
+- el agente envia PCM16 mono al bot con `RtpAudioInputSender`
+- el bot reenvia audio del meeting y frames por RTP si configuras sus destinos
 
 ## Contrato de Entradas Para IA
 
@@ -128,6 +146,50 @@ Recomendacion:
 - usa `chat` para acuses rapidos y datos estructurados
 - usa `speak` para participacion conversacional dentro de la reunion
 - si necesitas responder extremadamente rapido, puedes poner `awaitCompletion: false`
+- si el proveedor ya genera audio PCM, evita `speak` y usa el canal RTP directo
+
+## Evento de Transporte Realtime
+
+Cuando el runtime entra al meeting y tiene RTP configurado emite:
+
+```ts
+type MediaTransportReadyEvent = {
+  type: 'media.transport.ready';
+  payload: {
+    transport: {
+      audioInput?: {
+        transport: 'rtp';
+        host: string;
+        port: number;
+        codec: 'L16';
+        sampleRate: number;
+        channels: number;
+        direction: 'recvonly';
+        sdp: string;
+      };
+      meetingAudioOutput?: {
+        transport: 'rtp';
+        host: string;
+        port: number;
+        codec: 'L16';
+        sampleRate: number;
+        channels: number;
+        direction: 'sendonly';
+        sdp: string;
+      };
+      videoOutput?: {
+        transport: 'rtp';
+        host: string;
+        port: number;
+        codec: 'JPEG';
+        fps: number;
+        direction: 'sendonly';
+        sdp: string;
+      };
+    };
+  };
+};
+```
 
 ## Flujo Recomendado Para Un Agente Live
 
@@ -138,6 +200,13 @@ Recomendacion:
 5. Procesa solo el frame mas reciente de video.
 6. Devuelve acciones cortas y claras.
 7. Mantiene memoria corta del contexto reciente.
+
+Para ultra baja latencia:
+
+1. Espera `media.transport.ready`.
+2. Manda audio PCM directo por RTP.
+3. Usa `chat` solo para acuses o datos.
+4. Usa `speak` como fallback cuando no tengas audio del proveedor.
 
 ## Ejemplo Minimo
 
@@ -190,6 +259,38 @@ Comando:
 npm --prefix meet-control-server run example:agent
 ```
 
+Ejemplo low-latency:
+
+```bash
+npm --prefix meet-control-server run example:rtp-agent
+```
+
+## Audio Directo del Proveedor
+
+SDK helper:
+
+```ts
+import { MeetAgent, RtpAudioInputSender } from './meet-control-server/src/sdk/index.js';
+
+const agent = new MeetAgent({
+  baseUrl: 'http://localhost:3001',
+  meetingId: 'demo-meeting',
+  botId: 'bot-01'
+});
+
+await agent.connect({ snapshotLimit: 0 });
+const transport = await agent.waitForMediaTransport();
+
+if (transport.payload.transport.audioInput) {
+  const sender = new RtpAudioInputSender(transport.payload.transport.audioInput, {
+    targetHost: '127.0.0.1'
+  });
+
+  // Conecta aqui los chunks PCM16 mono de tu proveedor.
+  // sender.writePcm(chunk);
+}
+```
+
 ## Como Pensarlo Para ADK / Gemini Live
 
 La recomendacion es no acoplar el sistema de Meet a un proveedor concreto.
@@ -207,12 +308,21 @@ Arquitectura sugerida:
 4. Tu adapter traduce la respuesta a `AgentBridgeAction`.
 5. El bridge ejecuta la accion en Meet.
 
-Para un runtime tipo Gemini Live:
+Para un runtime tipo Gemini Live o ADK:
 
 - texto de chat/captions/audio puede entrar como turns o mensajes incrementales
 - imagenes JPEG de `video.frame.detected` pueden entrar como frames discretos
 - conviene procesar solo el frame mas reciente y descartar backlog
-- el audio de salida del modelo no necesita inyectarse directamente; mas simple y estable es devolver texto y usar `speech.say`
+- si tu adapter ya recibe audio PCM incremental del proveedor, conectalo a `RtpAudioInputSender`
+- si el proveedor expone WebRTC o WebSocket de audio, usa ese SDK oficial y traduce los frames/chunks a PCM para el sender RTP
+- `speech.say` queda como fallback estable cuando no quieres mantener un stream de audio continuo
+
+Para un runtime tipo `nvidia/personaplex-7b-v1`:
+
+- separa el loop de razonamiento del loop de audio
+- mantiene una cola corta de salida PCM
+- recorta silencios largos antes de enviarlos al sender RTP
+- usa `chat` para mensajes estructurados y el RTP para voz natural
 
 ## Recomendaciones de Baja Latencia
 
@@ -223,6 +333,8 @@ Para un runtime tipo Gemini Live:
 - responder por chat si quieres acknowledgement inmediato
 - responder por voz cuando el mensaje merezca presencia en la reunion
 - si el agente genera mucho texto, dividirlo antes de `speak`
+- preferir audio PCM -> RTP cuando el proveedor ya genera voz
+- bajar el costo del STT manteniendo los segmentos cortos si lo usas como fallback
 
 ## Endpoints Clave Para IA
 
@@ -244,6 +356,9 @@ Variables importantes para pruebas desde Docker:
 - `runtimeSupervisorUrl=http://localhost:3000`
 - `controlServerUrl=http://localhost:3001`
 - `runtimeControlBaseUrl=http://meet-control-server:3001`
+- `REALTIME_AGENT_AUDIO_RTP_PORT=5004`
+- `REALTIME_MEETING_AUDIO_RTP_URL=rtp://host.docker.internal:5006`
+- `REALTIME_VIDEO_RTP_URL=rtp://host.docker.internal:5008`
 
 ## Siguiente Paso Recomendado
 
@@ -252,4 +367,4 @@ Cuando ya vayas a conectar el agente real:
 1. define un adapter propio sobre `startAgentBridge`
 2. decide cuando responder por `chat` y cuando por `speak`
 3. agrega politicas de memoria corta y control de turnos
-4. si el proveedor lo permite, separa procesamiento de texto y vision para no bloquear el loop principal
+4. si el proveedor lo permite, separa procesamiento de texto, vision y audio para no bloquear el loop principal

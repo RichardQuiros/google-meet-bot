@@ -1,6 +1,13 @@
 import { EventEmitter } from 'node:events';
 import { EventSource } from 'eventsource';
-import type { BotEvent, BotCommand, MeetingTimeline, VideoEventRecord } from '../types.js';
+import type {
+  BotEvent,
+  BotCommand,
+  MeetingTimeline,
+  VideoEventRecord,
+  MediaTransportFailedEvent,
+  MediaTransportReadyEvent
+} from '../types.js';
 
 type EventSourceMessage = Event & {
   data: string;
@@ -12,6 +19,8 @@ export type CaptionDetectedEvent = Extract<BotEvent, { type: 'caption.segment.de
 export type AudioTranscriptEvent = Extract<BotEvent, { type: 'audio.transcript.detected' }>;
 export type CommandCompletedEvent = Extract<BotEvent, { type: 'command.completed' }>;
 export type CommandFailedEvent = Extract<BotEvent, { type: 'command.failed' }>;
+export type RealtimeTransportReadyEvent = MediaTransportReadyEvent;
+export type RealtimeTransportFailedEvent = MediaTransportFailedEvent;
 
 export interface LiveVideoFrame {
   event: VideoFrameEvent;
@@ -75,6 +84,8 @@ export class MeetAgent extends EventEmitter {
       | 'audioTranscript'
       | 'videoFrame'
       | 'videoActivity'
+      | 'mediaTransportReady'
+      | 'mediaTransportFailed'
       | 'botStatus'
       | 'commandStarted'
       | 'commandCompleted'
@@ -125,6 +136,16 @@ export class MeetAgent extends EventEmitter {
 
     this.bindStreamEvent(source, 'video.activity.detected', (event) => {
       this.emit('videoActivity', event);
+      this.emit('event', event);
+    });
+
+    this.bindStreamEvent(source, 'media.transport.ready', (event) => {
+      this.emit('mediaTransportReady', event);
+      this.emit('event', event);
+    });
+
+    this.bindStreamEvent(source, 'media.transport.failed', (event) => {
+      this.emit('mediaTransportFailed', event);
       this.emit('event', event);
     });
 
@@ -344,6 +365,26 @@ export class MeetAgent extends EventEmitter {
     return result;
   }
 
+  async waitForMediaTransport(timeoutMs = 30000): Promise<RealtimeTransportReadyEvent> {
+    const timeline = await this.getTimeline(50).catch(() => undefined);
+    const existingEvent = [...(timeline?.events ?? [])]
+      .reverse()
+      .find(
+        (event): event is RealtimeTransportReadyEvent =>
+          event.type === 'media.transport.ready'
+      );
+
+    if (existingEvent) {
+      return existingEvent;
+    }
+
+    return this.waitForOneOfEvents<RealtimeTransportReadyEvent>(
+      ['mediaTransportReady'],
+      () => true,
+      timeoutMs
+    );
+  }
+
   startLiveInputs(options: {
     onInput: (input: LiveInputEvent) => void | Promise<void>;
     onError?: (error: Error) => void;
@@ -536,6 +577,8 @@ export class MeetAgent extends EventEmitter {
       | 'audioTranscript'
       | 'videoFrame'
       | 'videoActivity'
+      | 'mediaTransportReady'
+      | 'mediaTransportFailed'
       | 'botStatus'
       | 'commandStarted'
       | 'commandCompleted'
