@@ -12,6 +12,33 @@ export type BotStatus =
 
 export type CommandStatus = 'queued' | 'started' | 'completed' | 'failed';
 
+export interface RtpAudioTransportDescriptor {
+  transport: 'rtp';
+  host: string;
+  port: number;
+  codec: 'L16';
+  sampleRate: number;
+  channels: number;
+  direction: 'sendonly' | 'recvonly';
+  sdp: string;
+}
+
+export interface RtpVideoTransportDescriptor {
+  transport: 'rtp';
+  host: string;
+  port: number;
+  codec: 'JPEG';
+  fps: number;
+  direction: 'sendonly' | 'recvonly';
+  sdp: string;
+}
+
+export interface RealtimeMediaTransportDescriptor {
+  audioInput?: RtpAudioTransportDescriptor;
+  meetingAudioOutput?: RtpAudioTransportDescriptor;
+  videoOutput?: RtpVideoTransportDescriptor;
+}
+
 type CommandEnvelope<TType extends string, TPayload> = {
   id: string;
   type: TType;
@@ -149,6 +176,21 @@ export type VideoActivityDetectedEvent = MeetingEventBase<
   }
 >;
 
+export type MediaTransportReadyEvent = MeetingEventBase<
+  'media.transport.ready',
+  {
+    transport: RealtimeMediaTransportDescriptor;
+  }
+>;
+
+export type MediaTransportFailedEvent = MeetingEventBase<
+  'media.transport.failed',
+  {
+    stage: 'audio-input' | 'meeting-audio-output' | 'video-output' | 'unknown';
+    error: string;
+  }
+>;
+
 export type SpeechOutputCompletedEvent = MeetingEventBase<
   'speech.output.completed',
   {
@@ -203,6 +245,8 @@ export type BotEvent =
   | CommandCompletedEvent
   | CommandFailedEvent
   | CommandStartedEvent
+  | MediaTransportFailedEvent
+  | MediaTransportReadyEvent
   | SpeechOutputCompletedEvent
   | SpeechOutputFailedEvent
   | VideoActivityDetectedEvent

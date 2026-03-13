@@ -22,6 +22,7 @@ import {
   type AudioObserverDebugInfo,
   type DetectedAudioTranscript
 } from '../audio/AudioTranscriptObserver.js';
+import { RtpMediaRelay } from '../media/RtpMediaRelay.js';
 import type {
   BotCommand,
   BotEvent,
@@ -67,6 +68,8 @@ export class RuntimeAgent {
   private captionsObserver?: MeetCaptionsObserver;
   private audioObserver?: AudioTranscriptObserver;
   private videoObserver?: MeetVideoObserver;
+  private realtimeMediaRelay?: RtpMediaRelay;
+  private realtimeMediaAnnounced = false;
   private pendingVideoFrame?: { meetingId: string } & DetectedVideoFrame;
   private videoFrameFlushPromise?: Promise<void>;
 
@@ -98,7 +101,8 @@ export class RuntimeAgent {
     const registration: BotRegistration = {
       botId: this.botId,
       displayName: this.displayName,
-      runtimeUrl: this.runtimeUrl
+      runtimeUrl: this.runtimeUrl,
+      metadata: this.buildRuntimeMetadata()
     };
 
     this.log('registering bot with control server');
@@ -312,6 +316,8 @@ export class RuntimeAgent {
     }
 
     this.observerPage = page;
+
+    await this.ensureRealtimeMediaRelay();
 
     if (!this.chatObserver) {
       await this.startChatObserver(page);
@@ -555,6 +561,14 @@ export class RuntimeAgent {
 
     await this.videoObserver.start({
       onFrame: async (frame) => {
+        if (frame.framePath) {
+          await this.realtimeMediaRelay?.pushVideoFrame(frame.framePath).catch((error) => {
+            const message =
+              error instanceof Error ? error.message : 'Unknown RTP video relay error';
+            this.log('realtime video relay error', { message });
+          });
+        }
+
         this.queueLatestVideoFrameEmit({
           meetingId: this.activeMeetingId!,
           ...frame
@@ -588,6 +602,7 @@ export class RuntimeAgent {
     this.captionsObserver?.stop();
     this.videoObserver?.stop();
     await this.audioObserver?.stop();
+    await this.realtimeMediaRelay?.stop();
 
     this.chatObserver = undefined;
     this.captionsObserver = undefined;
@@ -595,6 +610,7 @@ export class RuntimeAgent {
     this.audioObserver = undefined;
     this.observerPage = undefined;
     this.pendingVideoFrame = undefined;
+    this.realtimeMediaAnnounced = false;
   }
 
   private async ensureRuntimeHealth(): Promise<void> {
@@ -673,6 +689,136 @@ export class RuntimeAgent {
     }
 
     return this.speechOutput;
+  }
+
+  private buildRuntimeMetadata(): Record<string, unknown> {
+    const metadata: Record<string, unknown> = {
+      capabilities: {
+        audioInput: this.enableAudioInput,
+        videoInput: this.enableVideoInput,
+        captureVideoFrames: this.captureVideoFrames,
+        directSpeechRtpInput: this.hasRealtimeTransport(
+          this.getRealtimeMediaRelay().getDescriptor().audioInput
+        ),
+        meetingAudioRtpOutput: this.hasRealtimeTransport(
+          this.getRealtimeMediaRelay().getDescriptor().meetingAudioOutput
+        ),
+        videoRtpOutput: this.hasRealtimeTransport(
+          this.getRealtimeMediaRelay().getDescriptor().videoOutput
+        )
+      }
+    };
+
+    const transport = this.getRealtimeMediaRelay().getDescriptor();
+
+    if (
+      this.hasRealtimeTransport(transport.audioInput) ||
+      this.hasRealtimeTransport(transport.meetingAudioOutput) ||
+      this.hasRealtimeTransport(transport.videoOutput)
+    ) {
+      metadata.realtimeTransport = transport;
+    }
+
+    return metadata;
+  }
+
+  private async ensureRealtimeMediaRelay(): Promise<void> {
+    const relay = this.getRealtimeMediaRelay();
+
+    if (!relay.isEnabled() || !this.activeMeetingId) {
+      return;
+    }
+
+    if (this.realtimeMediaAnnounced) {
+      return;
+    }
+
+    try {
+      const transport = await relay.start();
+      await this.emitMediaTransportReady({
+        meetingId: this.activeMeetingId,
+        transport
+      });
+      this.realtimeMediaAnnounced = true;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Unknown realtime media relay error';
+
+      this.log('realtime media relay failed', { message });
+      await this.emitMediaTransportFailed({
+        meetingId: this.activeMeetingId,
+        stage: 'unknown',
+        error: message
+      });
+    }
+  }
+
+  private getRealtimeMediaRelay(): RtpMediaRelay {
+    if (!this.realtimeMediaRelay) {
+      this.realtimeMediaRelay = new RtpMediaRelay({
+        ffmpegPath: process.env.FFMPEG_PATH ?? 'ffmpeg',
+        audioInput: {
+          port: this.parseOptionalInteger(process.env.REALTIME_AGENT_AUDIO_RTP_PORT),
+          advertiseHost: process.env.REALTIME_PUBLIC_HOST ?? 'localhost',
+          sampleRate: this.parseIntegerWithFallback(
+            process.env.REALTIME_AGENT_AUDIO_SAMPLE_RATE,
+            24000
+          ),
+          channels: this.parseIntegerWithFallback(
+            process.env.REALTIME_AGENT_AUDIO_CHANNELS,
+            1
+          )
+        },
+        meetingAudioOutput: {
+          targetUrl: process.env.REALTIME_MEETING_AUDIO_RTP_URL,
+          inputDevice: this.audioInputDevice ?? '',
+          inputFormat: process.env.MEET_AUDIO_INPUT_FORMAT ?? this.getDefaultAudioInputFormat(),
+          sampleRate: this.parseIntegerWithFallback(
+            process.env.REALTIME_MEETING_AUDIO_SAMPLE_RATE,
+            16000
+          ),
+          channels: this.parseIntegerWithFallback(
+            process.env.REALTIME_MEETING_AUDIO_CHANNELS,
+            1
+          )
+        },
+        videoOutput: {
+          targetUrl: process.env.REALTIME_VIDEO_RTP_URL,
+          fps: this.parseIntegerWithFallback(process.env.REALTIME_VIDEO_FPS, 4)
+        },
+        onLog: (message, data) => {
+          this.log(`realtime relay ${message}`, data);
+        }
+      });
+    }
+
+    return this.realtimeMediaRelay;
+  }
+
+  private hasRealtimeTransport(value: unknown): boolean {
+    return Boolean(value && typeof value === 'object');
+  }
+
+  private parseIntegerWithFallback(value: string | undefined, fallback: number): number {
+    const parsed = Number.parseInt(value ?? '', 10);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  private parseOptionalInteger(value: string | undefined): number | undefined {
+    const parsed = Number.parseInt(value ?? '', 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+  }
+
+  private getDefaultAudioInputFormat(): string {
+    if (process.platform === 'win32') {
+      return 'dshow';
+    }
+
+    if (process.platform === 'darwin') {
+      return 'avfoundation';
+    }
+
+    return 'pulse';
   }
 
   private async emitDetectedChatMessage(input: {
@@ -807,6 +953,38 @@ export class RuntimeAgent {
         participantTileCount: input.participantTileCount,
         summary: input.summary,
         metadata: input.metadata
+      },
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  private async emitMediaTransportReady(input: {
+    meetingId: string;
+    transport: ReturnType<RtpMediaRelay['getDescriptor']>;
+  }): Promise<void> {
+    await this.emitEvent({
+      type: 'media.transport.ready',
+      botId: this.botId,
+      meetingId: input.meetingId,
+      payload: {
+        transport: input.transport
+      },
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  private async emitMediaTransportFailed(input: {
+    meetingId: string;
+    stage: 'audio-input' | 'meeting-audio-output' | 'video-output' | 'unknown';
+    error: string;
+  }): Promise<void> {
+    await this.emitEvent({
+      type: 'media.transport.failed',
+      botId: this.botId,
+      meetingId: input.meetingId,
+      payload: {
+        stage: input.stage,
+        error: input.error
       },
       timestamp: new Date().toISOString()
     });

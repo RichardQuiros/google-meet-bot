@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "node --import tsx src/server.ts",
-    "example:agent": "node --import tsx examples/generic-live-agent.example.ts"
+    "example:agent": "node --import tsx examples/generic-live-agent.example.ts",
+    "example:rtp-agent": "node --import tsx examples/low-latency-rtp-agent.example.ts"
   },
   "dependencies": {
     "eventsource": "^4.1.0",
