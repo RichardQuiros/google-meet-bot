@@ -1,0 +1,26 @@
+{
+  "name": "meet-bot-api",
+  "version": "1.0.0",
+  "description": "meet bot",
+  "license": "ISC",
+  "author": "pqrichardpq@gmail.com",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/runtime.ts",
+    "start": "node --import tsx src/runtime.ts",
+    "dev:supervisor": "tsx watch src/server.ts",
+    "start:supervisor": "node --import tsx src/server.ts"
+  },
+  "dependencies": {
+    "fastify": "^5.0.0",
+    "playwright": "^1.58.2",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.10",
+    "@types/node": "^25.4.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0"
+  }
+}

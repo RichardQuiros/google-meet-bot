@@ -1,0 +1,113 @@
+services:
+  # ═══════════════════════════════════════════
+  # Layer 1: meet-bot (Browser + Media Runtime)
+  # ═══════════════════════════════════════════
+  meet-bot:
+    build:
+      context: ./meet-bot
+    command: ["npm", "run", "start:supervisor"]
+    depends_on:
+      meet-control-server:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      CONTROL_BASE_URL: http://meet-control-server:3001
+      COMMAND_LONG_POLL_MS: "1000"
+      CHAT_POLL_INTERVAL_MS: "250"
+      CAPTION_POLL_INTERVAL_MS: "250"
+      ENABLE_AUDIO_INPUT: "true"
+      AUDIO_SEGMENT_DURATION_MS: "1200"
+      AUDIO_SEGMENT_COOLDOWN_MS: "50"
+      MEET_AUDIO_INPUT_FORMAT: pulse
+      MEET_AUDIO_INPUT_DEVICE: meetbot_sink.monitor
+      ENABLE_VIDEO_INPUT: "true"
+      CAPTURE_VIDEO_FRAMES: "true"
+      VIDEO_POLL_INTERVAL_MS: "250"
+      VIDEO_JPEG_QUALITY: "35"
+      STT_COMMAND: "python3 /app/scripts/faster_whisper_transcribe.py {input}"
+      FASTER_WHISPER_MODEL: base
+      FASTER_WHISPER_DEVICE: cpu
+      TTS_BACKEND: piper
+      PIPER_PATH: /opt/piper/piper
+      PIPER_MODEL: /models/piper/en_US-lessac-medium.onnx
+      SPEECH_DELIVERY_MODE: meeting-microphone
+      AUDIO_OUTPUT_BACKEND: paplay
+      AUDIO_OUTPUT_DEVICE: meetbot_sink
+      MEET_AUDIO_SINK_NAME: meetbot_sink
+      MEET_AUDIO_SOURCE_NAME: meetbot_mic
+      MEET_AUDIO_SINK_DESCRIPTION: MeetBot_Virtual_Sink
+      MEET_AUDIO_SOURCE_DESCRIPTION: MeetBot_Virtual_Microphone
+      MEET_PREFERRED_MICROPHONE_LABEL: MeetBot_Virtual_Microphone
+    ports:
+      - "3000:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    shm_size: "2gb"
+    volumes:
+      - meet-bot-data:/app/tmp
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ═══════════════════════════════════════════
+  # Layer 2: meet-control-server (Event Bus + API)
+  # ═══════════════════════════════════════════
+  meet-control-server:
+    build:
+      context: ./meet-control-server
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+    volumes:
+      - meet-bot-data:/app/tmp:ro
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ═══════════════════════════════════════════
+  # Layer 3: meetmind-agent (Gemini AI Brain)
+  # ═══════════════════════════════════════════
+  meetmind-agent:
+    build:
+      context: ./meetmind-agent
+    depends_on:
+      meet-control-server:
+        condition: service_healthy
+    environment:
+      # Gemini API
+      GOOGLE_API_KEY: "${GOOGLE_API_KEY}"
+      GEMINI_LIVE_MODEL: "gemini-2.5-flash-native-audio"
+      # Control server connection
+      CONTROL_BASE_URL: http://meet-control-server:3001
+      BOT_ID: "bot-01"
+      MEETING_ID: "${MEETING_ID:-meetmind-session}"
+      # Server
+      HOST: "0.0.0.0"
+      PORT: "8080"
+      DEBUG: "false"
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  meet-bot-data:
