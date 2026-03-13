@@ -1,0 +1,86 @@
+services:
+  meet-control-server:
+    build:
+      context: ./meet-control-server
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+    volumes:
+      - meet-bot-data:/app/tmp:ro
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3001/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  meet-bot:
+    build:
+      context: ./meet-bot
+    command: ["npm", "run", "start:supervisor"]
+    depends_on:
+      meet-control-server:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      CONTROL_BASE_URL: http://meet-control-server:3001
+      COMMAND_LONG_POLL_MS: "3000"
+      CHAT_POLL_INTERVAL_MS: "500"
+      CAPTION_POLL_INTERVAL_MS: "400"
+      ENABLE_AUDIO_INPUT: "true"
+      AUDIO_SEGMENT_DURATION_MS: "2500"
+      AUDIO_SEGMENT_COOLDOWN_MS: "100"
+      MEET_AUDIO_INPUT_FORMAT: pulse
+      MEET_AUDIO_INPUT_DEVICE: meetbot_sink.monitor
+      ENABLE_VIDEO_INPUT: "true"
+      CAPTURE_VIDEO_FRAMES: "true"
+      ENABLE_VIDEO_ACTIVITY: "false"
+      VIDEO_POLL_INTERVAL_MS: "700"
+      VIDEO_JPEG_QUALITY: "45"
+      STT_COMMAND: "python3 /app/scripts/faster_whisper_transcribe.py {input}"
+      FASTER_WHISPER_MODEL: base
+      FASTER_WHISPER_DEVICE: cpu
+      TTS_BACKEND: piper
+      PIPER_PATH: /opt/piper/piper
+      PIPER_MODEL: /models/piper/en_US-lessac-medium.onnx
+      SPEECH_DELIVERY_MODE: meeting-microphone
+      AUDIO_OUTPUT_BACKEND: paplay
+      AUDIO_OUTPUT_DEVICE: meetbot_sink
+      MEET_AUDIO_SINK_NAME: meetbot_sink
+      MEET_AUDIO_SOURCE_NAME: meetbot_mic
+      MEET_AUDIO_SINK_DESCRIPTION: MeetBot_Virtual_Sink
+      MEET_AUDIO_SOURCE_DESCRIPTION: MeetBot_Virtual_Microphone
+      MEET_PREFERRED_MICROPHONE_LABEL: MeetBot_Virtual_Microphone
+    ports:
+      - "3000:3000"
+    shm_size: "2gb"
+    volumes:
+      - meet-bot-data:/app/tmp
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  meet-bot-data:

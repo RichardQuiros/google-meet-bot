@@ -1,0 +1,780 @@
+{
+  "info": {
+    "name": "Meet Live Agent MVP",
+    "_postman_id": "6d72f2b6-0fc3-4ec8-947a-c5f0a05fc1f0",
+    "description": "Postman collection for the Google Meet Live Agent MVP. Covers runtime supervisor endpoints, the public control API, and internal runtime endpoints for debugging. Includes the Docker-ready runtimeControlBaseUrl, live SSE consumption, long-poll command testing, and video frame fetch endpoints for agent integrations.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "runtimeSupervisorUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "controlServerUrl",
+      "value": "http://localhost:3001"
+    },
+    {
+      "key": "runtimeControlBaseUrl",
+      "value": "http://meet-control-server:3001"
+    },
+    {
+      "key": "botId",
+      "value": "bot-01"
+    },
+    {
+      "key": "runtimeBotId",
+      "value": "bot-01"
+    },
+    {
+      "key": "meetingId",
+      "value": "demo-meeting"
+    },
+    {
+      "key": "meetingUrl",
+      "value": "https://meet.google.com/xxx-xxxx-xxx"
+    },
+    {
+      "key": "displayName",
+      "value": "Agent-01"
+    },
+    {
+      "key": "commandId",
+      "value": ""
+    },
+    {
+      "key": "frameId",
+      "value": ""
+    },
+    {
+      "key": "chatText",
+      "value": "Hello from Postman"
+    },
+    {
+      "key": "speechText",
+      "value": "Hello everyone, this is the Meet bot speaking."
+    }
+  ],
+  "item": [
+    {
+      "name": "Runtime Supervisor",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{runtimeSupervisorUrl}}/health",
+              "host": [
+                "{{runtimeSupervisorUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Runtime Bot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"botId\": \"{{botId}}\",\n  \"displayName\": \"{{displayName}}\",\n  \"autoStart\": true\n}"
+            },
+            "url": {
+              "raw": "{{runtimeSupervisorUrl}}/runtime/bots",
+              "host": [
+                "{{runtimeSupervisorUrl}}"
+              ],
+              "path": [
+                "runtime",
+                "bots"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.botId) {",
+                  "  pm.collectionVariables.set('runtimeBotId', json.botId);",
+                  "  pm.collectionVariables.set('botId', json.botId);",
+                  "}",
+                  "pm.test('Runtime bot created', function () {",
+                  "  pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Runtime Bots",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{runtimeSupervisorUrl}}/runtime/bots",
+              "host": [
+                "{{runtimeSupervisorUrl}}"
+              ],
+              "path": [
+                "runtime",
+                "bots"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Runtime Bot",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{runtimeSupervisorUrl}}/runtime/bots/{{runtimeBotId}}",
+              "host": [
+                "{{runtimeSupervisorUrl}}"
+              ],
+              "path": [
+                "runtime",
+                "bots",
+                "{{runtimeBotId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Start Runtime Bot",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{runtimeSupervisorUrl}}/runtime/bots/{{runtimeBotId}}/start",
+              "host": [
+                "{{runtimeSupervisorUrl}}"
+              ],
+              "path": [
+                "runtime",
+                "bots",
+                "{{runtimeBotId}}",
+                "start"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Stop Runtime Bot",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{runtimeSupervisorUrl}}/runtime/bots/{{runtimeBotId}}/stop",
+              "host": [
+                "{{runtimeSupervisorUrl}}"
+              ],
+              "path": [
+                "runtime",
+                "bots",
+                "{{runtimeBotId}}",
+                "stop"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Restart Runtime Bot",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{runtimeSupervisorUrl}}/runtime/bots/{{runtimeBotId}}/restart",
+              "host": [
+                "{{runtimeSupervisorUrl}}"
+              ],
+              "path": [
+                "runtime",
+                "bots",
+                "{{runtimeBotId}}",
+                "restart"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Runtime Bot",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{runtimeSupervisorUrl}}/runtime/bots/{{runtimeBotId}}",
+              "host": [
+                "{{runtimeSupervisorUrl}}"
+              ],
+              "path": [
+                "runtime",
+                "bots",
+                "{{runtimeBotId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Control API",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{controlServerUrl}}/health",
+              "host": [
+                "{{controlServerUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Bots",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{controlServerUrl}}/bots",
+              "host": [
+                "{{controlServerUrl}}"
+              ],
+              "path": [
+                "bots"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Bot",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{controlServerUrl}}/bots/{{botId}}",
+              "host": [
+                "{{controlServerUrl}}"
+              ],
+              "path": [
+                "bots",
+                "{{botId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Join Bot To Meeting",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"meetingId\": \"{{meetingId}}\",\n  \"meetingUrl\": \"{{meetingUrl}}\",\n  \"displayName\": \"{{displayName}}\",\n  \"camera\": false,\n  \"microphone\": true\n}"
+            },
+            "url": {
+              "raw": "{{controlServerUrl}}/bots/{{botId}}/join",
+              "host": [
+                "{{controlServerUrl}}"
+              ],
+              "path": [
+                "bots",
+                "{{botId}}",
+                "join"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) {",
+                  "  pm.collectionVariables.set('commandId', json.id);",
+                  "}",
+                  "pm.test('Join command created', function () {",
+                  "  pm.expect(pm.response.code).to.eql(201);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Send Chat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"meetingId\": \"{{meetingId}}\",\n  \"text\": \"{{chatText}}\"\n}"
+            },
+            "url": {
+              "raw": "{{controlServerUrl}}/bots/{{botId}}/chat",
+              "host": [
+                "{{controlServerUrl}}"
+              ],
+              "path": [
+                "bots",
+                "{{botId}}",
+                "chat"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) {",
+                  "  pm.collectionVariables.set('commandId', json.id);",
+                  "}",
+                  "pm.test('Chat command created', function () {",
+                  "  pm.expect(pm.response.code).to.eql(201);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Speak",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"meetingId\": \"{{meetingId}}\",\n  \"text\": \"{{speechText}}\"\n}"
+            },
+            "url": {
+              "raw": "{{controlServerUrl}}/bots/{{botId}}/speak",
+              "host": [
+                "{{controlServerUrl}}"
+              ],
+              "path": [
+                "bots",
+                "{{botId}}",
+                "speak"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) {",
+                  "  pm.collectionVariables.set('commandId', json.id);",
+                  "}",
+                  "pm.test('Speech command created', function () {",
+                  "  pm.expect(pm.response.code).to.eql(201);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Bot Commands",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{controlServerUrl}}/bots/{{botId}}/commands",
+              "host": [
+                "{{controlServerUrl}}"
+              ],
+              "path": [
+                "bots",
+                "{{botId}}",
+                "commands"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Bot Events",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{controlServerUrl}}/bots/{{botId}}/events",
+              "host": [
+                "{{controlServerUrl}}"
+              ],
+              "path": [
+                "bots",
+                "{{botId}}",
+                "events"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Command",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{controlServerUrl}}/commands/{{commandId}}",
+              "host": [
+                "{{controlServerUrl}}"
+              ],
+              "path": [
+                "commands",
+                "{{commandId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Meetings",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{controlServerUrl}}/meetings",
+              "host": [
+                "{{controlServerUrl}}"
+              ],
+              "path": [
+                "meetings"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Meeting",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{controlServerUrl}}/meetings/{{meetingId}}",
+              "host": [
+                "{{controlServerUrl}}"
+              ],
+              "path": [
+                "meetings",
+                "{{meetingId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Meeting Timeline",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{controlServerUrl}}/meetings/{{meetingId}}/timeline?limit=100",
+              "host": [
+                "{{controlServerUrl}}"
+              ],
+              "path": [
+                "meetings",
+                "{{meetingId}}",
+                "timeline"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Meeting Events",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{controlServerUrl}}/meetings/{{meetingId}}/events",
+              "host": [
+                "{{controlServerUrl}}"
+              ],
+              "path": [
+                "meetings",
+                "{{meetingId}}",
+                "events"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Meeting Messages",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{controlServerUrl}}/meetings/{{meetingId}}/messages",
+              "host": [
+                "{{controlServerUrl}}"
+              ],
+              "path": [
+                "meetings",
+                "{{meetingId}}",
+                "messages"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Meeting Captions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{controlServerUrl}}/meetings/{{meetingId}}/captions",
+              "host": [
+                "{{controlServerUrl}}"
+              ],
+              "path": [
+                "meetings",
+                "{{meetingId}}",
+                "captions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Meeting Audio Transcripts",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{controlServerUrl}}/meetings/{{meetingId}}/audio-transcripts",
+              "host": [
+                "{{controlServerUrl}}"
+              ],
+              "path": [
+                "meetings",
+                "{{meetingId}}",
+                "audio-transcripts"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Meeting Video Events",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{controlServerUrl}}/meetings/{{meetingId}}/video-events",
+              "host": [
+                "{{controlServerUrl}}"
+              ],
+              "path": [
+                "meetings",
+                "{{meetingId}}",
+                "video-events"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Latest Video Frame",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{controlServerUrl}}/meetings/{{meetingId}}/video-frames/latest",
+              "host": [
+                "{{controlServerUrl}}"
+              ],
+              "path": [
+                "meetings",
+                "{{meetingId}}",
+                "video-frames",
+                "latest"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.eventId) {",
+                  "  pm.collectionVariables.set('frameId', json.eventId);",
+                  "}",
+                  "pm.test('Latest frame request succeeded', function () {",
+                  "  pm.expect(pm.response.code).to.eql(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Video Frame Image",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{controlServerUrl}}/meetings/{{meetingId}}/video-frames/{{frameId}}/image",
+              "host": [
+                "{{controlServerUrl}}"
+              ],
+              "path": [
+                "meetings",
+                "{{meetingId}}",
+                "video-frames",
+                "{{frameId}}",
+                "image"
+              ]
+            },
+            "description": "Fetches the JPEG bytes for the most recent frame after running Get Latest Video Frame."
+          }
+        },
+        {
+          "name": "Get Meeting Commands",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{controlServerUrl}}/meetings/{{meetingId}}/commands",
+              "host": [
+                "{{controlServerUrl}}"
+              ],
+              "path": [
+                "meetings",
+                "{{meetingId}}",
+                "commands"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Stream Meeting Events (Live)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{controlServerUrl}}/meetings/{{meetingId}}/events/stream?snapshotLimit=0",
+              "host": [
+                "{{controlServerUrl}}"
+              ],
+              "path": [
+                "meetings",
+                "{{meetingId}}",
+                "events",
+                "stream"
+              ],
+              "query": [
+                {
+                  "key": "snapshotLimit",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Opens the live SSE stream without an initial snapshot backlog. This is the recommended mode for near-live agent consumption."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Internal Runtime API",
+      "item": [
+        {
+          "name": "Register Runtime Bot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"botId\": \"{{botId}}\",\n  \"displayName\": \"{{displayName}}\"\n}"
+            },
+            "url": {
+              "raw": "{{controlServerUrl}}/internal/bots/register",
+              "host": [
+                "{{controlServerUrl}}"
+              ],
+              "path": [
+                "internal",
+                "bots",
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Poll Next Command (Long Poll)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{controlServerUrl}}/internal/bots/{{botId}}/commands/next?waitMs=3000",
+              "host": [
+                "{{controlServerUrl}}"
+              ],
+              "path": [
+                "internal",
+                "bots",
+                "{{botId}}",
+                "commands",
+                "next"
+              ],
+              "query": [
+                {
+                  "key": "waitMs",
+                  "value": "3000"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Post Bot Status Changed Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"bot.status.changed\",\n  \"botId\": \"{{botId}}\",\n  \"meetingId\": \"{{meetingId}}\",\n  \"payload\": {\n    \"status\": \"joined\"\n  },\n  \"timestamp\": \"{{$isoTimestamp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{controlServerUrl}}/internal/events",
+              "host": [
+                "{{controlServerUrl}}"
+              ],
+              "path": [
+                "internal",
+                "events"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
