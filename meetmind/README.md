@@ -51,7 +51,7 @@ POST /speak → meet-control-server → meet-bot → TTS → PulseAudio → Meet
 
 | Component | Technology |
 |-----------|-----------|
-| AI Model | Gemini 2.5 Flash Native Audio (Live API) |
+| AI Model | Gemini Live 2.5 Flash Native Audio (Live API) |
 | Agent Framework | Google ADK (Bidi-streaming) |
 | Browser | Playwright + Chrome (persistent profile) |
 | Agent Server | FastAPI (Python) + WebSocket |
@@ -99,7 +99,7 @@ Or via API:
 ```bash
 curl -X POST http://localhost:8080/api/deploy \
   -H "Content-Type: application/json" \
-  -d '{"meeting_url": "https://meet.google.com/abc-defg-hij", "role_id": "meeting_scribe"}'
+  -d '{"meeting_url": "https://meet.google.com/abc-defg-hij", "role_id": "technical_reviewer"}'
 ```
 
 ### Deploy to Google Cloud Run
@@ -131,7 +131,7 @@ Layers 1-2 (`meet-bot` and `meet-control-server`) are based on [google-meet-bot]
 
 ## Hackathon Compliance
 
-- [x] Uses Gemini model (gemini-2.5-flash-native-audio)
+- [x] Uses Gemini model (gemini-live-2.5-flash-native-audio)
 - [x] Uses Google ADK (Agent Development Kit)
 - [x] Uses Google Cloud (Firestore + Cloud Run)
 - [x] Multimodal (audio + vision)

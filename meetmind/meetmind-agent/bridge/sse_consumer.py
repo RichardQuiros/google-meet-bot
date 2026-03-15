@@ -7,6 +7,7 @@ meeting events (text, audio transcripts, video frames) to the Gemini agent.
 import asyncio
 import json
 import logging
+import os
 from typing import Optional, Callable, Awaitable
 from dataclasses import dataclass, field
 from enum import Enum
@@ -63,10 +64,30 @@ class BotStatusEvent:
     error: Optional[str] = None
 
 
+@dataclass
+class RtpAudioTransport:
+    """RTP audio transport descriptor from the control server."""
+    host: str
+    port: int
+    sample_rate: int
+    channels: int
+    direction: str
+    sdp: str
+
+
+@dataclass
+class MediaTransportEvent:
+    """Realtime media transport descriptor set."""
+    audio_input: Optional[RtpAudioTransport] = None
+    meeting_audio_output: Optional[RtpAudioTransport] = None
+    raw: dict = field(default_factory=dict)
+
+
 # Type aliases for callbacks
 OnTextCallback = Callable[[TextEvent], Awaitable[None]]
 OnFrameCallback = Callable[[VideoFrameEvent], Awaitable[None]]
 OnStatusCallback = Callable[[BotStatusEvent], Awaitable[None]]
+OnMediaTransportCallback = Callable[[MediaTransportEvent], Awaitable[None]]
 
 
 class SSEConsumer:
@@ -84,6 +105,7 @@ class SSEConsumer:
     ):
         self.base_url = control_base_url.rstrip("/")
         self.meeting_id = meeting_id
+        self.snapshot_limit = max(0, int(os.getenv("MEET_SSE_SNAPSHOT_LIMIT", "50")))
         self._running = False
         self._task: Optional[asyncio.Task] = None
         self._client: Optional[httpx.AsyncClient] = None
@@ -92,6 +114,7 @@ class SSEConsumer:
         self._on_text: Optional[OnTextCallback] = None
         self._on_frame: Optional[OnFrameCallback] = None
         self._on_status: Optional[OnStatusCallback] = None
+        self._on_media_transport: Optional[OnMediaTransportCallback] = None
         
         # Stats
         self.events_received = 0
@@ -112,6 +135,11 @@ class SSEConsumer:
     def on_status(self, callback: OnStatusCallback):
         """Register callback for bot status changes."""
         self._on_status = callback
+        return self
+
+    def on_media_transport(self, callback: OnMediaTransportCallback):
+        """Register callback for realtime RTP transport availability."""
+        self._on_media_transport = callback
         return self
     
     async def start(self):
@@ -144,7 +172,10 @@ class SSEConsumer:
         
         while self._running:
             try:
-                url = f"{self.base_url}/meetings/{self.meeting_id}/events/stream?snapshotLimit=0"
+                url = (
+                    f"{self.base_url}/meetings/{self.meeting_id}/events/stream"
+                    f"?snapshotLimit={self.snapshot_limit}"
+                )
                 logger.info(f"Connecting to SSE stream: {url}")
                 
                 async with self._client.stream("GET", url) as response:
@@ -210,6 +241,14 @@ class SSEConsumer:
             return
         
         try:
+            if event_type == EventKind.SNAPSHOT:
+                await self._dispatch_snapshot(payload)
+                logger.info(
+                    "SSE snapshot received with %s events",
+                    len(payload.get("events", [])) if isinstance(payload, dict) else 0,
+                )
+                return
+
             if event_type == EventKind.CHAT and self._on_text:
                 event = TextEvent(
                     kind="chat",
@@ -266,13 +305,80 @@ class SSEConsumer:
                     error=p.get("error"),
                 )
                 await self._on_status(event)
+
+            elif event_type == EventKind.MEDIA_TRANSPORT_READY and self._on_media_transport:
+                transport = payload.get("payload", {}).get("transport", {})
+                event = MediaTransportEvent(
+                    audio_input=self._parse_audio_transport(transport.get("audioInput")),
+                    meeting_audio_output=self._parse_audio_transport(
+                        transport.get("meetingAudioOutput")
+                    ),
+                    raw=payload,
+                )
+                await self._on_media_transport(event)
             
             elif event_type == EventKind.CONNECTED:
                 logger.info(f"SSE connected event: {payload}")
             
-            elif event_type == EventKind.SNAPSHOT:
-                logger.info(f"SSE snapshot received with {len(payload.get('events', []))} events")
-            
         except Exception as e:
             self.errors += 1
             logger.error(f"Error dispatching event {event_type}: {e}")
+
+    async def _dispatch_snapshot(self, payload: dict):
+        """Recover the latest transport and status events from a stream snapshot."""
+        events = payload.get("events", []) if isinstance(payload, dict) else []
+        if not events:
+            return
+
+        latest_transport_ready = None
+        latest_transport_failed = None
+        latest_bot_status = None
+
+        for event in reversed(events):
+            event_type = event.get("type")
+            if latest_transport_ready is None and event_type == EventKind.MEDIA_TRANSPORT_READY:
+                latest_transport_ready = event
+            elif latest_transport_failed is None and event_type == EventKind.MEDIA_TRANSPORT_FAILED:
+                latest_transport_failed = event
+            elif latest_bot_status is None and event_type == EventKind.BOT_STATUS:
+                latest_bot_status = event
+
+            if latest_transport_ready and latest_transport_failed and latest_bot_status:
+                break
+
+        if latest_bot_status and self._on_status:
+            p = latest_bot_status.get("payload", {})
+            await self._on_status(
+                BotStatusEvent(
+                    status=p.get("status", "unknown"),
+                    error=p.get("error"),
+                )
+            )
+
+        if latest_transport_ready and self._on_media_transport:
+            transport = latest_transport_ready.get("payload", {}).get("transport", {})
+            await self._on_media_transport(
+                MediaTransportEvent(
+                    audio_input=self._parse_audio_transport(transport.get("audioInput")),
+                    meeting_audio_output=self._parse_audio_transport(
+                        transport.get("meetingAudioOutput")
+                    ),
+                    raw=latest_transport_ready,
+                )
+            )
+        elif latest_transport_failed:
+            logger.warning("Latest snapshot transport event is failure: %s", latest_transport_failed)
+
+    def _parse_audio_transport(self, payload: Optional[dict]) -> Optional[RtpAudioTransport]:
+        """Normalize an RTP audio transport descriptor from event payload."""
+        if not payload:
+            return None
+
+        return RtpAudioTransport(
+            host=payload.get("host", ""),
+            port=payload.get("port", 0),
+            sample_rate=payload.get("sampleRate", 16000),
+            channels=payload.get("channels", 1),
+            direction=payload.get("direction", ""),
+            sdp=payload.get("sdp", ""),
+        )

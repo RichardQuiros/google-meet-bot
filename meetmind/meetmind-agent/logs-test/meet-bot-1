@@ -1,0 +1,107 @@
+2026-03-15 09:35:34.942 | W: [pulseaudio] main.c: Running in system mode, but --disallow-module-loading not set.
+2026-03-15 09:35:34.942 | N: [pulseaudio] main.c: Running in system mode, forcibly disabling SHM mode.
+2026-03-15 09:35:35.208 | 
+2026-03-15 09:35:35.208 | > meet-bot-api@1.0.0 start:supervisor
+2026-03-15 09:35:35.208 | > node --import tsx src/server.ts
+2026-03-15 09:35:35.208 | 
+2026-03-15 09:35:35.872 | [runtime:bot-01] registering bot with control server
+2026-03-15 09:35:35.876 | {"level":30,"time":1773585335876,"pid":35,"hostname":"56b754e1e3e0","botId":"bot-01","displayName":"MeetMind AI","controlBaseUrl":"http://meet-control-server:3001","msg":"Bootstrapped default runtime bot"}
+2026-03-15 09:35:35.882 | {"level":30,"time":1773585335882,"pid":35,"hostname":"56b754e1e3e0","msg":"Server listening at http://127.0.0.1:3000"}
+2026-03-15 09:35:35.882 | {"level":30,"time":1773585335882,"pid":35,"hostname":"56b754e1e3e0","msg":"Server listening at http://172.19.0.3:3000"}
+2026-03-15 09:35:35.893 | [runtime:bot-01] starting command polling loop
+2026-03-15 09:35:40.009 | {"level":30,"time":1773585340008,"pid":35,"hostname":"56b754e1e3e0","reqId":"req-1","req":{"method":"GET","url":"/health","host":"127.0.0.1:3000","remoteAddress":"127.0.0.1","remotePort":40400},"msg":"incoming request"}
+2026-03-15 09:35:40.011 | {"level":30,"time":1773585340011,"pid":35,"hostname":"56b754e1e3e0","reqId":"req-1","res":{"statusCode":200},"responseTime":1.765056999400258,"msg":"request completed"}
+2026-03-15 09:35:50.104 | {"level":30,"time":1773585350104,"pid":35,"hostname":"56b754e1e3e0","reqId":"req-2","req":{"method":"GET","url":"/health","host":"127.0.0.1:3000","remoteAddress":"127.0.0.1","remotePort":33982},"msg":"incoming request"}
+2026-03-15 09:35:50.105 | {"level":30,"time":1773585350104,"pid":35,"hostname":"56b754e1e3e0","reqId":"req-2","res":{"statusCode":200},"responseTime":0.37754600029438734,"msg":"request completed"}
+2026-03-15 09:36:00.197 | {"level":30,"time":1773585360197,"pid":35,"hostname":"56b754e1e3e0","reqId":"req-3","req":{"method":"GET","url":"/health","host":"127.0.0.1:3000","remoteAddress":"127.0.0.1","remotePort":59104},"msg":"incoming request"}
+2026-03-15 09:36:00.198 | {"level":30,"time":1773585360197,"pid":35,"hostname":"56b754e1e3e0","reqId":"req-3","res":{"statusCode":200},"responseTime":0.34971099998801947,"msg":"request completed"}
+2026-03-15 09:36:04.132 | [runtime:bot-01] received command bot.join { commandId: 'de00cd4d-412c-4048-a8f0-905cf5fdc298' }
+2026-03-15 09:36:10.289 | {"level":30,"time":1773585370288,"pid":35,"hostname":"56b754e1e3e0","reqId":"req-4","req":{"method":"GET","url":"/health","host":"127.0.0.1:3000","remoteAddress":"127.0.0.1","remotePort":59656},"msg":"incoming request"}
+2026-03-15 09:36:10.290 | {"level":30,"time":1773585370289,"pid":35,"hostname":"56b754e1e3e0","reqId":"req-4","res":{"statusCode":200},"responseTime":0.4460990000516176,"msg":"request completed"}
+2026-03-15 09:36:20.385 | {"level":30,"time":1773585380385,"pid":35,"hostname":"56b754e1e3e0","reqId":"req-5","req":{"method":"GET","url":"/health","host":"127.0.0.1:3000","remoteAddress":"127.0.0.1","remotePort":39762},"msg":"incoming request"}
+2026-03-15 09:36:20.385 | {"level":30,"time":1773585380385,"pid":35,"hostname":"56b754e1e3e0","reqId":"req-5","res":{"statusCode":200},"responseTime":0.4622299997135997,"msg":"request completed"}
+2026-03-15 09:36:30.463 | {"level":30,"time":1773585390463,"pid":35,"hostname":"56b754e1e3e0","reqId":"req-6","req":{"method":"GET","url":"/health","host":"127.0.0.1:3000","remoteAddress":"127.0.0.1","remotePort":58972},"msg":"incoming request"}
+2026-03-15 09:36:30.464 | {"level":30,"time":1773585390463,"pid":35,"hostname":"56b754e1e3e0","reqId":"req-6","res":{"statusCode":200},"responseTime":0.3396720001474023,"msg":"request completed"}
+2026-03-15 09:36:40.170 | [runtime:bot-01] preferred microphone selection attempt {
+2026-03-15 09:36:40.170 |   selected: true,
+2026-03-15 09:36:40.170 |   preferredLabel: 'MeetBot_Virtual_Microphone',
+2026-03-15 09:36:40.170 |   selectedLabel: 'meetbot_virtual_microphone',
+2026-03-15 09:36:40.170 |   reason: 'already-selected'
+2026-03-15 09:36:40.170 | }
+2026-03-15 09:36:40.175 | [runtime:bot-01] speech microphone state { state: 'enabled', label: 'Turn off microphone' }
+2026-03-15 09:36:40.175 | [runtime:bot-01] realtime speech delivery ready { deliveryMode: 'meeting-microphone' }
+2026-03-15 09:36:40.181 | [runtime:bot-01] realtime relay audio-input process started {
+2026-03-15 09:36:40.181 |   ffmpegPath: 'ffmpeg',
+2026-03-15 09:36:40.181 |   args: [
+2026-03-15 09:36:40.181 |     '-hide_banner',
+2026-03-15 09:36:40.181 |     '-loglevel',
+2026-03-15 09:36:40.181 |     'error',
+2026-03-15 09:36:40.181 |     '-protocol_whitelist',
+2026-03-15 09:36:40.181 |     'file,udp,rtp',
+2026-03-15 09:36:40.181 |     '-fflags',
+2026-03-15 09:36:40.181 |     'nobuffer',
+2026-03-15 09:36:40.181 |     '-flags',
+2026-03-15 09:36:40.181 |     'low_delay',
+2026-03-15 09:36:40.181 |     '-i',
+2026-03-15 09:36:40.181 |     '/app/tmp/rtp-media/audio-input-5004.sdp',
+2026-03-15 09:36:40.181 |     '-ac',
+2026-03-15 09:36:40.181 |     '1',
+2026-03-15 09:36:40.181 |     '-ar',
+2026-03-15 09:36:40.181 |     '24000',
+2026-03-15 09:36:40.181 |     '-stream_name',
+2026-03-15 09:36:40.181 |     'meetbot-rtp-audio-input',
+2026-03-15 09:36:40.181 |     '-device',
+2026-03-15 09:36:40.181 |     'meetbot_sink',
+2026-03-15 09:36:40.181 |     '-f',
+2026-03-15 09:36:40.181 |     'pulse',
+2026-03-15 09:36:40.181 |     'default'
+2026-03-15 09:36:40.181 |   ]
+2026-03-15 09:36:40.181 | }
+2026-03-15 09:36:40.183 | [runtime:bot-01] realtime relay meeting-audio-output process started {
+2026-03-15 09:36:40.183 |   ffmpegPath: 'ffmpeg',
+2026-03-15 09:36:40.183 |   args: [
+2026-03-15 09:36:40.183 |     '-hide_banner',
+2026-03-15 09:36:40.183 |     '-loglevel',
+2026-03-15 09:36:40.183 |     'error',
+2026-03-15 09:36:40.183 |     '-fflags',
+2026-03-15 09:36:40.183 |     'nobuffer',
+2026-03-15 09:36:40.183 |     '-flags',
+2026-03-15 09:36:40.183 |     'low_delay',
+2026-03-15 09:36:40.183 |     '-f',
+2026-03-15 09:36:40.183 |     'pulse',
+2026-03-15 09:36:40.183 |     '-i',
+2026-03-15 09:36:40.183 |     'meetbot_meeting_sink.monitor',
+2026-03-15 09:36:40.183 |     '-ac',
+2026-03-15 09:36:40.183 |     '1',
+2026-03-15 09:36:40.183 |     '-ar',
+2026-03-15 09:36:40.183 |     '16000',
+2026-03-15 09:36:40.183 |     '-c:a',
+2026-03-15 09:36:40.183 |     'pcm_s16be',
+2026-03-15 09:36:40.183 |     '-payload_type',
+2026-03-15 09:36:40.183 |     '96',
+2026-03-15 09:36:40.183 |     '-f',
+2026-03-15 09:36:40.183 |     'rtp',
+2026-03-15 09:36:40.183 |     'rtp://meetmind-agent:5006'
+2026-03-15 09:36:40.183 |   ]
+2026-03-15 09:36:40.183 | }
+2026-03-15 09:36:40.573 | {"level":30,"time":1773585400572,"pid":35,"hostname":"56b754e1e3e0","reqId":"req-7","req":{"method":"GET","url":"/health","host":"127.0.0.1:3000","remoteAddress":"127.0.0.1","remotePort":45512},"msg":"incoming request"}
+2026-03-15 09:36:40.573 | {"level":30,"time":1773585400573,"pid":35,"hostname":"56b754e1e3e0","reqId":"req-7","res":{"statusCode":200},"responseTime":0.4412799999117851,"msg":"request completed"}
+2026-03-15 09:36:41.179 | [runtime:bot-01] chat observer started {
+2026-03-15 09:36:41.179 |   meetingId: 'meetmind-session',
+2026-03-15 09:36:41.179 |   skipInitialVisibleMessages: false,
+2026-03-15 09:36:41.179 |   probe: undefined
+2026-03-15 09:36:41.179 | }
+2026-03-15 09:36:41.183 | [runtime:bot-01] video observer started {
+2026-03-15 09:36:41.183 |   meetingId: 'meetmind-session',
+2026-03-15 09:36:41.183 |   captureFrames: true,
+2026-03-15 09:36:41.183 |   detectActivity: false,
+2026-03-15 09:36:41.183 |   pollIntervalMs: 500
+2026-03-15 09:36:41.183 | }
+2026-03-15 09:36:50.666 | {"level":30,"time":1773585410666,"pid":35,"hostname":"56b754e1e3e0","reqId":"req-8","req":{"method":"GET","url":"/health","host":"127.0.0.1:3000","remoteAddress":"127.0.0.1","remotePort":35840},"msg":"incoming request"}
+2026-03-15 09:36:50.667 | {"level":30,"time":1773585410666,"pid":35,"hostname":"56b754e1e3e0","reqId":"req-8","res":{"statusCode":200},"responseTime":0.29974499996751547,"msg":"request completed"}
+2026-03-15 09:37:00.761 | {"level":30,"time":1773585420761,"pid":35,"hostname":"56b754e1e3e0","reqId":"req-9","req":{"method":"GET","url":"/health","host":"127.0.0.1:3000","remoteAddress":"127.0.0.1","remotePort":38166},"msg":"incoming request"}
+2026-03-15 09:37:00.762 | {"level":30,"time":1773585420762,"pid":35,"hostname":"56b754e1e3e0","reqId":"req-9","res":{"statusCode":200},"responseTime":0.7558530000969768,"msg":"request completed"}
+2026-03-15 09:37:10.855 | {"level":30,"time":1773585430855,"pid":35,"hostname":"56b754e1e3e0","reqId":"req-a","req":{"method":"GET","url":"/health","host":"127.0.0.1:3000","remoteAddress":"127.0.0.1","remotePort":46974},"msg":"incoming request"}
+2026-03-15 09:37:10.856 | {"level":30,"time":1773585430855,"pid":35,"hostname":"56b754e1e3e0","reqId":"req-a","res":{"statusCode":200},"responseTime":0.39040799997746944,"msg":"request completed"}
+2026-03-15 09:37:20.956 | {"level":30,"time":1773585440956,"pid":35,"hostname":"56b754e1e3e0","reqId":"req-b","req":{"method":"GET","url":"/health","host":"127.0.0.1:3000","remoteAddress":"127.0.0.1","remotePort":42114},"msg":"incoming request"}
+2026-03-15 09:37:20.956 | {"level":30,"time":1773585440956,"pid":35,"hostname":"56b754e1e3e0","reqId":"req-b","res":{"statusCode":200},"responseTime":0.2474320000037551,"msg":"request completed"}

@@ -14,6 +14,7 @@ type AudioInputConfig = {
   advertiseHost: string;
   sampleRate: number;
   channels: number;
+  outputDevice?: string;
 };
 
 type MeetingAudioOutputConfig = {
@@ -56,6 +57,8 @@ export class RtpMediaRelay {
   private audioInputProcess?: ChildProcess;
   private meetingAudioOutputProcess?: ChildProcess;
   private videoOutputProcess?: ChildProcess;
+  private audioInputRestartTimer?: NodeJS.Timeout;
+  private meetingAudioOutputRestartTimer?: NodeJS.Timeout;
   private audioInputSdpPath?: string;
   private pendingVideoFrame?: Buffer;
   private videoFramePump?: Promise<void>;
@@ -127,6 +130,8 @@ export class RtpMediaRelay {
   async stop(): Promise<void> {
     this.isRunning = false;
     this.pendingVideoFrame = undefined;
+    this.clearRestartTimer('audio-input');
+    this.clearRestartTimer('meeting-audio-output');
 
     this.killProcess(this.audioInputProcess);
     this.killProcess(this.meetingAudioOutputProcess);
@@ -277,24 +282,46 @@ export class RtpMediaRelay {
       '-hide_banner',
       '-loglevel',
       'error',
+      '-analyzeduration',
+      '0',
+      '-probesize',
+      '32',
       '-protocol_whitelist',
       'file,udp,rtp',
+      '-listen_timeout',
+      process.env.REALTIME_AGENT_AUDIO_LISTEN_TIMEOUT_S ?? '3600',
+      '-reorder_queue_size',
+      '0',
       '-fflags',
       'nobuffer',
       '-flags',
       'low_delay',
+      '-max_delay',
+      '0',
       '-i',
       this.audioInputSdpPath,
       '-ac',
       String(this.audioInput.channels),
       '-ar',
       String(this.audioInput.sampleRate),
-      '-f',
-      'pulse',
+      '-stream_name',
       'meetbot-rtp-audio-input'
     ];
 
-    this.audioInputProcess = this.spawnProcess('audio-input', args);
+    const audioFilter = (process.env.REALTIME_AGENT_AUDIO_FILTER ?? '').trim();
+    if (audioFilter) {
+      args.push('-af', audioFilter);
+    }
+
+    args.push(
+      '-f',
+      'pulse',
+      'default'
+    );
+
+    this.audioInputProcess = this.spawnProcess('audio-input', args, {
+      PULSE_SINK: this.audioInput.outputDevice?.trim() || undefined
+    });
   }
 
   private startMeetingAudioOutput(): void {
@@ -366,12 +393,14 @@ export class RtpMediaRelay {
 
   private spawnProcess(
     stage: 'audio-input' | 'meeting-audio-output' | 'video-output',
-    args: string[]
+    args: string[],
+    extraEnv?: Record<string, string | undefined>
   ): ChildProcess {
     const child = spawn(this.ffmpegPath, args, {
       env: {
         ...process.env,
-        PULSE_LATENCY_MSEC: process.env.PULSE_LATENCY_MSEC ?? '30'
+        PULSE_LATENCY_MSEC: process.env.PULSE_LATENCY_MSEC ?? '30',
+        ...extraEnv
       },
       stdio: ['pipe', 'ignore', 'pipe']
     });
@@ -389,7 +418,12 @@ export class RtpMediaRelay {
     });
 
     child.on('close', (code) => {
-      if (code === 0 || !this.isRunning) {
+      const isCurrentProcess = this.getStageProcess(stage) === child;
+      if (isCurrentProcess) {
+        this.setStageProcess(stage, undefined);
+      }
+
+      if (!this.isRunning) {
         return;
       }
 
@@ -397,11 +431,16 @@ export class RtpMediaRelay {
         code,
         stderr: stderr.trim() || undefined
       });
+
+      if (isCurrentProcess && (stage === 'audio-input' || stage === 'meeting-audio-output')) {
+        this.scheduleRestart(stage);
+      }
     });
 
     this.onLog?.(`${stage} process started`, {
       ffmpegPath: this.ffmpegPath,
-      args
+      args,
+      env: extraEnv
     });
 
     return child;
@@ -413,6 +452,91 @@ export class RtpMediaRelay {
     }
 
     child.kill('SIGTERM');
+  }
+
+  private getStageProcess(
+    stage: 'audio-input' | 'meeting-audio-output' | 'video-output'
+  ): ChildProcess | undefined {
+    if (stage === 'audio-input') {
+      return this.audioInputProcess;
+    }
+
+    if (stage === 'meeting-audio-output') {
+      return this.meetingAudioOutputProcess;
+    }
+
+    return this.videoOutputProcess;
+  }
+
+  private setStageProcess(
+    stage: 'audio-input' | 'meeting-audio-output' | 'video-output',
+    child: ChildProcess | undefined
+  ): void {
+    if (stage === 'audio-input') {
+      this.audioInputProcess = child;
+      return;
+    }
+
+    if (stage === 'meeting-audio-output') {
+      this.meetingAudioOutputProcess = child;
+      return;
+    }
+
+    this.videoOutputProcess = child;
+  }
+
+  private clearRestartTimer(stage: 'audio-input' | 'meeting-audio-output'): void {
+    const timer =
+      stage === 'audio-input'
+        ? this.audioInputRestartTimer
+        : this.meetingAudioOutputRestartTimer;
+
+    if (timer) {
+      clearTimeout(timer);
+    }
+
+    if (stage === 'audio-input') {
+      this.audioInputRestartTimer = undefined;
+    } else {
+      this.meetingAudioOutputRestartTimer = undefined;
+    }
+  }
+
+  private scheduleRestart(stage: 'audio-input' | 'meeting-audio-output'): void {
+    this.clearRestartTimer(stage);
+
+    const timer = setTimeout(() => {
+      void this.restartStage(stage);
+    }, 500);
+
+    if (stage === 'audio-input') {
+      this.audioInputRestartTimer = timer;
+    } else {
+      this.meetingAudioOutputRestartTimer = timer;
+    }
+  }
+
+  private async restartStage(stage: 'audio-input' | 'meeting-audio-output'): Promise<void> {
+    this.clearRestartTimer(stage);
+
+    if (!this.isRunning) {
+      return;
+    }
+
+    this.onLog?.(`${stage} restart scheduled`);
+
+    try {
+      if (stage === 'audio-input') {
+        await this.startAudioInput();
+      } else {
+        this.startMeetingAudioOutput();
+      }
+    } catch (error) {
+      this.onLog?.(`${stage} restart failed`, {
+        message: error instanceof Error ? error.message : String(error)
+      });
+      this.scheduleRestart(stage);
+    }
   }
 
   private async verifyWarmup(): Promise<void> {

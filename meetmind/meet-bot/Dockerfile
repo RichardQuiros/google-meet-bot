@@ -67,7 +67,8 @@ COPY src ./src
 COPY scripts ./scripts
 COPY docker/runtime-entrypoint.sh /usr/local/bin/meet-bot-entrypoint
 
-RUN chmod +x /usr/local/bin/meet-bot-entrypoint
+RUN sed -i 's/\r$//' /usr/local/bin/meet-bot-entrypoint \
+  && chmod +x /usr/local/bin/meet-bot-entrypoint
 
 EXPOSE 3000
 

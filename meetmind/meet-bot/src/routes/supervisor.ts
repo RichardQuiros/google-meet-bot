@@ -27,7 +27,44 @@ function resolveControlBaseUrl(requestedControlBaseUrl?: string): string | undef
   return requested;
 }
 
+function shouldBootstrapDefaultBot(): boolean {
+  return !/^(0|false|no)$/i.test(process.env.SUPERVISOR_BOOTSTRAP_BOT ?? 'true');
+}
+
 export async function supervisorRoutes(app: FastifyInstance) {
+  if (shouldBootstrapDefaultBot()) {
+    const botId = process.env.BOT_ID?.trim() || 'bot-01';
+    const displayName = process.env.BOT_DISPLAY_NAME?.trim() || 'Agent-01';
+    const controlBaseUrl = resolveControlBaseUrl(process.env.CONTROL_BASE_URL);
+    const runtimeUrl = process.env.RUNTIME_URL?.trim() || undefined;
+
+    if (controlBaseUrl) {
+      const record = supervisor.createBot({
+        botId,
+        displayName,
+        controlBaseUrl,
+        runtimeUrl,
+        autoStart: true
+      });
+
+      app.log.info(
+        {
+          botId: record.botId,
+          displayName: record.displayName,
+          controlBaseUrl: record.controlBaseUrl
+        },
+        'Bootstrapped default runtime bot'
+      );
+    } else {
+      app.log.warn(
+        {
+          controlBaseUrlConfigured: Boolean(controlBaseUrl)
+        },
+        'Skipping default runtime bot bootstrap because CONTROL_BASE_URL is missing'
+      );
+    }
+  }
+
   app.get('/runtime/bots', async () => supervisor.listBots());
 
   app.get('/runtime/bots/:botId', async (request, reply) => {
