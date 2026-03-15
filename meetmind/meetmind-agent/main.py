@@ -19,16 +19,12 @@ from typing import Optional
 from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from bridge.sse_consumer import SSEConsumer, TextEvent, VideoFrameEvent, BotStatusEvent
-from bridge.command_sender import CommandSender
-from bridge.frame_fetcher import FrameFetcher
-from gemini.live_session import GeminiLiveSession
+from services.agent_presence_runtime import AgentPresenceRuntime
 from app.meetmind_agent.roles import (
-    RoleConfig, ParticipationMode, PREDEFINED_ROLES,
+    ParticipationMode,
     get_role, create_custom_role, list_roles,
 )
 from app.meetmind_agent.tools import (
@@ -50,6 +46,11 @@ BOT_ID = os.getenv("BOT_ID", "bot-01")
 MEETING_ID = os.getenv("MEETING_ID", "meetmind-session")
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8080"))
+GREETING_ON_JOIN = os.getenv("AGENT_GREETING_ON_JOIN", "true").lower() not in {
+    "0",
+    "false",
+    "no",
+}
 
 # ── Global State ──
 active_session: dict = {}
@@ -88,7 +89,7 @@ app.add_middleware(
 
 class DeployRequest(BaseModel):
     meeting_url: str
-    role_id: str = "meeting_scribe"
+    role_id: str = "technical_reviewer"
     custom_role_name: Optional[str] = None
     custom_role_description: Optional[str] = None
     custom_role_mode: Optional[str] = "reactive"
@@ -167,98 +168,47 @@ async def deploy_agent(req: DeployRequest):
             raise HTTPException(status_code=400, detail=f"Unknown role: {req.role_id}")
     
     role.vision_enabled = req.vision_enabled
-    
     meeting_id = req.meeting_id or MEETING_ID
     bot_id = req.bot_id or BOT_ID
-    
-    # Initialize components
-    command_sender = CommandSender(
-        control_base_url=CONTROL_BASE_URL,
-        bot_id=bot_id,
-        meeting_id=meeting_id,
-    )
-    await command_sender.start()
-    
-    frame_fetcher = FrameFetcher(
-        control_base_url=CONTROL_BASE_URL,
-        meeting_id=meeting_id,
-    )
-    await frame_fetcher.start()
-    
-    gemini_session = GeminiLiveSession(
+
+    runtime = AgentPresenceRuntime(
         role=role,
-        command_sender=command_sender,
-        session_id=f"meetmind_{role.role_id}_{meeting_id}",
-    )
-    
-    sse_consumer = SSEConsumer(
         control_base_url=CONTROL_BASE_URL,
         meeting_id=meeting_id,
+        bot_id=bot_id,
+        publish_dashboard_event=_broadcast_to_dashboard,
+        on_agent_response=_broadcast_agent_response,
     )
-    
-    # Wire SSE events to Gemini
-    async def on_text(event: TextEvent):
-        await gemini_session.handle_text_event(event)
-        await _broadcast_to_dashboard({
-            "type": "transcript",
-            "kind": event.kind,
-            "speaker": event.speaker,
-            "text": event.text,
-            "is_agent": False,
+
+    try:
+        await runtime.start(
+            meeting_url=req.meeting_url,
+            display_name=req.display_name,
+        )
+        active_session.update({
+            "is_active": True,
+            "runtime": runtime,
         })
-    
-    async def on_frame(event: VideoFrameEvent):
-        jpeg_data = await frame_fetcher.fetch_frame(event.frame_url)
-        if jpeg_data:
-            await gemini_session.handle_video_frame(jpeg_data)
-            await _broadcast_to_dashboard({
-                "type": "frame_received",
-                "frame_id": event.frame_id,
-            })
-    
-    async def on_status(event: BotStatusEvent):
-        active_session["bot_status"] = event.status
-        await _broadcast_to_dashboard({
-            "type": "bot_status",
-            "status": event.status,
-            "error": event.error,
-        })
-    
-    sse_consumer.on_text(on_text).on_frame(on_frame).on_status(on_status)
-    
-    # Store session state
-    active_session.update({
-        "is_active": True,
-        "role": role,
-        "meeting_id": meeting_id,
-        "bot_id": bot_id,
-        "meeting_url": req.meeting_url,
-        "command_sender": command_sender,
-        "frame_fetcher": frame_fetcher,
-        "gemini_session": gemini_session,
-        "sse_consumer": sse_consumer,
-        "bot_status": "initializing",
-    })
-    
-    # Start Gemini session
-    await gemini_session.start()
-    
-    # Start SSE consumption
-    await sse_consumer.start()
-    
-    # Tell the bot to join the meeting
-    join_result = await command_sender.join(
-        meeting_url=req.meeting_url,
-        display_name=req.display_name,
-        camera=False,
-        microphone=True,
-    )
-    
-    status = "joining" if join_result.success else f"join_failed: {join_result.error}"
-    active_session["bot_status"] = status
+
+        if GREETING_ON_JOIN and role.mode != ParticipationMode.OBSERVER and not runtime.voice_enabled:
+            await runtime.notes_session.handle_dashboard_message(
+                "You just joined the meeting. In one short sentence, greet the "
+                "participants and confirm you are listening, then continue "
+                "following your role."
+            )
+
+        status = runtime.bot_status
+    except RuntimeError as error:
+        active_session.clear()
+        await runtime.stop()
+        raise HTTPException(status_code=502, detail=str(error)) from error
+    except Exception:
+        active_session.clear()
+        await runtime.stop()
+        raise
     
     return DeployResponse(
-        session_id=gemini_session.session_id,
+        session_id=runtime.notes_session.session_id,
         role_name=role.role_name,
         mode=role.mode.value,
         status=status,
@@ -273,34 +223,28 @@ async def get_session_status():
     if not active_session.get("is_active"):
         return SessionStatus(active=False)
     
-    gemini: GeminiLiveSession = active_session.get("gemini_session")
+    runtime: AgentPresenceRuntime = active_session.get("runtime")
+    if not runtime:
+        return SessionStatus(active=False)
     
     return SessionStatus(
         active=True,
-        role_name=active_session["role"].role_name,
-        mode=active_session["role"].mode.value,
-        bot_status=active_session.get("bot_status", "unknown"),
-        meeting_id=active_session.get("meeting_id"),
-        stats=gemini.get_stats() if gemini else None,
+        role_name=runtime.role.role_name,
+        mode=runtime.role.mode.value,
+        bot_status=runtime.bot_status,
+        meeting_id=runtime.meeting_id,
+        stats=runtime.get_stats() or None,
     )
 
 
 @app.post("/api/session/message")
 async def send_dashboard_message(msg: DashboardMessage):
     """Send a message from the dashboard directly to the Gemini agent."""
-    gemini: GeminiLiveSession = active_session.get("gemini_session")
-    if not gemini:
+    runtime: AgentPresenceRuntime = active_session.get("runtime")
+    if not runtime:
         raise HTTPException(status_code=404, detail="No active session")
-    
-    await gemini.handle_dashboard_message(msg.text)
-    
-    await _broadcast_to_dashboard({
-        "type": "transcript",
-        "kind": "dashboard",
-        "speaker": "Dashboard",
-        "text": msg.text,
-        "is_agent": False,
-    })
+
+    await _dispatch_dashboard_message(msg.text)
     
     return {"status": "sent"}
 
@@ -311,8 +255,8 @@ async def end_session():
     if not active_session.get("is_active"):
         raise HTTPException(status_code=404, detail="No active session")
     
-    gemini: GeminiLiveSession = active_session.get("gemini_session")
-    stats = gemini.get_stats() if gemini else {}
+    runtime: AgentPresenceRuntime = active_session.get("runtime")
+    stats = runtime.get_stats() if runtime else {}
     
     await _stop_session()
     
@@ -344,10 +288,9 @@ async def dashboard_websocket(websocket: WebSocket):
             msg = json.loads(data)
             
             if msg.get("type") == "message":
-                # Forward dashboard message to Gemini
-                gemini: GeminiLiveSession = active_session.get("gemini_session")
-                if gemini:
-                    await gemini.handle_dashboard_message(msg.get("text", ""))
+                runtime: AgentPresenceRuntime = active_session.get("runtime")
+                if runtime:
+                    await _dispatch_dashboard_message(msg.get("text", ""))
             
             elif msg.get("type") == "end":
                 await end_session()
@@ -379,21 +322,34 @@ async def _broadcast_to_dashboard(message: dict):
         dashboard_ws_clients.remove(ws)
 
 
+async def _broadcast_agent_response(text: str):
+    """Send a live agent utterance to the dashboard transcript."""
+    await _broadcast_to_dashboard({
+        "type": "transcript",
+        "kind": "agent",
+        "speaker": "MeetMind",
+        "text": text,
+        "is_agent": True,
+    })
+
+
+async def _dispatch_dashboard_message(text: str):
+    """Route dashboard messages to notes and realtime voice when available."""
+    text = text.strip()
+    if not text:
+        return
+
+    runtime: AgentPresenceRuntime = active_session.get("runtime")
+    if runtime:
+        await runtime.send_dashboard_message(text)
+
+
 async def _stop_session():
     """Stop all session components."""
-    sse: SSEConsumer = active_session.get("sse_consumer")
-    gemini: GeminiLiveSession = active_session.get("gemini_session")
-    cmd: CommandSender = active_session.get("command_sender")
-    ff: FrameFetcher = active_session.get("frame_fetcher")
+    runtime: AgentPresenceRuntime = active_session.get("runtime")
     
-    if sse:
-        await sse.stop()
-    if gemini:
-        await gemini.stop()
-    if cmd:
-        await cmd.stop()
-    if ff:
-        await ff.stop()
+    if runtime:
+        await runtime.stop()
     
     active_session.clear()
     logger.info("Session stopped and cleaned up")

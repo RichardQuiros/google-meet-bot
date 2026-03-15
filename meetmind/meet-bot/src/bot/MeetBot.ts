@@ -106,6 +106,7 @@ export class MeetBot {
 
       const pages = this.context.pages();
       this.page = pages.length > 0 ? pages[0] : await this.context.newPage();
+      await this.installAudioCaptureGuards(this.page);
 
       if (this.shouldEnableStealthGuards()) {
         await this.installStealthGuards(this.page);
@@ -209,6 +210,8 @@ export class MeetBot {
         args: [
           '--no-sandbox',
           '--disable-blink-features=AutomationControlled',
+          '--disable-audio-track-processing',
+          '--disable-features=WebRtcAllowInputVolumeAdjustment',
           '--auto-accept-camera-and-microphone-capture'
         ],
         ignoreDefaultArgs: ['--enable-automation']
@@ -232,6 +235,8 @@ export class MeetBot {
         args: [
           '--no-sandbox',
           '--disable-blink-features=AutomationControlled',
+          '--disable-audio-track-processing',
+          '--disable-features=WebRtcAllowInputVolumeAdjustment',
           '--auto-accept-camera-and-microphone-capture'
         ],
         ignoreDefaultArgs: ['--enable-automation']
@@ -378,6 +383,55 @@ export class MeetBot {
           get: () => undefined,
           configurable: true
         });
+      } catch {}
+    `);
+  }
+
+  private async installAudioCaptureGuards(page: Page): Promise<void> {
+    await page.addInitScript(`
+      try {
+        const audioOverrides = {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          googEchoCancellation: false,
+          googAutoGainControl: false,
+          googNoiseSuppression: false,
+          googHighpassFilter: false,
+          googTypingNoiseDetection: false,
+          googAudioMirroring: false
+        };
+
+        const patchConstraints = (constraints) => {
+          if (!constraints || !constraints.audio) {
+            return constraints;
+          }
+
+          if (constraints.audio === true) {
+            return {
+              ...constraints,
+              audio: { ...audioOverrides }
+            };
+          }
+
+          if (typeof constraints.audio === 'object') {
+            return {
+              ...constraints,
+              audio: {
+                ...constraints.audio,
+                ...audioOverrides
+              }
+            };
+          }
+
+          return constraints;
+        };
+
+        if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
+          const originalGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+          navigator.mediaDevices.getUserMedia = (constraints) =>
+            originalGetUserMedia(patchConstraints(constraints));
+        }
       } catch {}
     `);
   }

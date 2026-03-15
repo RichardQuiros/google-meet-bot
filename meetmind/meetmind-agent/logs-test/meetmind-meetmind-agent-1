@@ -1,0 +1,145 @@
+2026-03-15 09:35:36.331 | INFO:     Started server process [7]
+2026-03-15 09:35:36.331 | INFO:     Waiting for application startup.
+2026-03-15 09:35:36.331 | 2026-03-15 14:35:36,331 [meetmind] INFO: MeetMind Agent Service starting...
+2026-03-15 09:35:36.331 | INFO:     Application startup complete.
+2026-03-15 09:35:36.332 | INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+2026-03-15 09:35:40.016 | INFO:     127.0.0.1:35816 - "GET /health HTTP/1.1" 200 OK
+2026-03-15 09:35:50.107 | INFO:     127.0.0.1:36386 - "GET /health HTTP/1.1" 200 OK
+2026-03-15 09:35:57.915 | INFO:     172.19.0.1:48112 - "GET / HTTP/1.1" 200 OK
+2026-03-15 09:36:00.201 | INFO:     127.0.0.1:49246 - "GET /health HTTP/1.1" 200 OK
+2026-03-15 09:36:03.877 | 2026-03-15 14:36:03,877 [bridge.command_sender] INFO: Command sender ready: http://meet-control-server:3001 (bot: bot-01)
+2026-03-15 09:36:03.880 | 2026-03-15 14:36:03,880 [gemini.live_session] INFO: Vertex AI config: project=meetmind-al, location=us-central1, use_vertexai=true, configured_model=gemini-live-2.5-flash-native-audio, active_model=gemini-live-2.5-flash-native-audio
+2026-03-15 09:36:03.881 | 2026-03-15 14:36:03,881 [gemini.live_session] INFO: Gemini session started: configured_model=gemini-live-2.5-flash-native-audio, active_model=gemini-live-2.5-flash-native-audio, role=Brainstorm Partner, mode=observer, vertex_ai=true, output_mode=audio-with-output-transcription
+2026-03-15 09:36:03.883 | 2026-03-15 14:36:03,882 [google_adk.google.adk.flows.llm_flows.base_llm_flow] INFO: Establishing live connection for agent: meetmind_agent
+2026-03-15 09:36:03.883 | 2026-03-15 14:36:03,883 [google_genai._api_client] INFO: The project/location from the environment variables will take precedence over the API key from the environment variables.
+2026-03-15 09:36:03.889 | 2026-03-15 14:36:03,889 [google_adk.google.adk.models.google_llm] INFO: Trying to connect to live model: gemini-live-2.5-flash-native-audio with api backend: GoogleLLMVariant.VERTEX_AI
+2026-03-15 09:36:03.889 | 2026-03-15 14:36:03,889 [google_genai._api_client] INFO: The project/location from the environment variables will take precedence over the API key from the environment variables.
+2026-03-15 09:36:04.128 | /usr/local/lib/python3.12/site-packages/pydantic/main.py:464: UserWarning: Pydantic serializer warnings:
+2026-03-15 09:36:04.128 |   PydanticSerializationUnexpectedValue(Expected `enum` - serialized value may not be as expected [field_name='response_modalities', input_value='AUDIO', input_type=str])
+2026-03-15 09:36:04.128 |   return self.__pydantic_serializer__.to_python(
+2026-03-15 09:36:04.132 | 2026-03-15 14:36:04,132 [httpx] INFO: HTTP Request: POST http://meet-control-server:3001/bots/bot-01/join "HTTP/1.1 201 Created"
+2026-03-15 09:36:04.135 | 2026-03-15 14:36:04,135 [bridge.sse_consumer] INFO: SSE consumer started: http://meet-control-server:3001/meetings/meetmind-session/events/stream
+2026-03-15 09:36:04.136 | INFO:     172.19.0.1:44912 - "POST /api/deploy HTTP/1.1" 200 OK
+2026-03-15 09:36:04.136 | 2026-03-15 14:36:04,136 [bridge.sse_consumer] INFO: Connecting to SSE stream: http://meet-control-server:3001/meetings/meetmind-session/events/stream?snapshotLimit=0
+2026-03-15 09:36:04.139 | 2026-03-15 14:36:04,139 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/events/stream?snapshotLimit=0 "HTTP/1.1 200 OK"
+2026-03-15 09:36:04.139 | 2026-03-15 14:36:04,139 [bridge.sse_consumer] INFO: SSE stream connected
+2026-03-15 09:36:04.139 | 2026-03-15 14:36:04,139 [bridge.sse_consumer] INFO: SSE connected event: {'meetingId': 'meetmind-session', 'timestamp': '2026-03-15T14:36:04.138Z'}
+2026-03-15 09:36:04.148 | INFO:     172.19.0.1:44916 - "WebSocket /ws/dashboard" [accepted]
+2026-03-15 09:36:04.148 | 2026-03-15 14:36:04,148 [meetmind] INFO: Dashboard client connected. Total: 1
+2026-03-15 09:36:04.148 | INFO:     connection open
+2026-03-15 09:36:10.295 | INFO:     127.0.0.1:45504 - "GET /health HTTP/1.1" 200 OK
+2026-03-15 09:36:20.393 | INFO:     127.0.0.1:40190 - "GET /health HTTP/1.1" 200 OK
+2026-03-15 09:36:30.469 | INFO:     127.0.0.1:58290 - "GET /health HTTP/1.1" 200 OK
+2026-03-15 09:36:40.392 | 2026-03-15 14:36:40,392 [services.realtime_voice_session] INFO: Realtime voice session starting: model=gemini-live-2.5-flash-native-audio voice=Aoede meeting_audio=meetmind-agent:5006 bot_audio=meet-bot:5004
+2026-03-15 09:36:40.393 | 2026-03-15 14:36:40,392 [google_genai._api_client] INFO: The user provided project/location will take precedence over the Vertex AI API key from the environment variable.
+2026-03-15 09:36:40.604 | INFO:     127.0.0.1:55704 - "GET /health HTTP/1.1" 200 OK
+2026-03-15 09:36:41.098 | 2026-03-15 14:36:41,098 [services.realtime_voice_session] INFO: Realtime voice live session connected
+2026-03-15 09:36:41.099 | 2026-03-15 14:36:41,098 [services.realtime_voice_session] INFO: Realtime voice sending system text turn: You just joined the meeting. Say one short greeting now, then continue listening.
+2026-03-15 09:36:41.703 | 2026-03-15 14:36:41,702 [services.realtime_voice_session] INFO: Realtime voice received first audio chunk: mime=audio/pcm bytes=11114
+2026-03-15 09:36:41.721 | 2026-03-15 14:36:41,721 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/ce14c2c8-cd4c-47c3-b5dc-0f60494f7eca/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:42.208 | 2026-03-15 14:36:42,208 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/1c5a15d5-15e1-4d27-8719-a7a5c723e3af/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:42.709 | 2026-03-15 14:36:42,709 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/4b4bef6a-91e3-42d6-a0b9-7025bf885c71/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:43.207 | 2026-03-15 14:36:43,207 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/1c83639e-a7de-4762-8e54-fa186277c7d5/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:43.707 | 2026-03-15 14:36:43,706 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/80053c9b-10e6-4c20-8cde-009f9f2b48af/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:44.208 | 2026-03-15 14:36:44,208 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/6e56b640-f73c-4543-979f-bc6ba067dc9a/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:44.706 | 2026-03-15 14:36:44,706 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/4e96f632-3ded-462b-8218-0632c5922e0d/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:45.206 | 2026-03-15 14:36:45,206 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/675d2d1e-b561-47d2-97ba-5d56050c0dc7/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:45.707 | 2026-03-15 14:36:45,707 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/e814fe81-2123-4900-9f61-793b93af5a66/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:46.210 | 2026-03-15 14:36:46,210 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/436b4db9-ecc6-4702-849d-64976468dc6c/image "HTTP/1.1 200 OK"
+input-turninput-turn2026-03-15 09:36:46.216 | 2026-03-15 14:36:46,216 [services.realtime_voice_session] INFO: Realtime voice received first active meeting audio chunk: rms=3993.59 bytes=598
+2026-03-15 09:36:46.710 | 2026-03-15 14:36:46,710 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/dabcd433-46c0-4f53-8108-bdc5e04b79be/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:47.211 | 2026-03-15 14:36:47,211 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/dee252ac-9bbf-4799-9954-6b3de40bae10/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:47.711 | 2026-03-15 14:36:47,710 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/caeaab75-7b02-4de3-aa7c-288e7351680b/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:48.210 | 2026-03-15 14:36:48,210 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/b7b2ba51-7b01-44e8-ac57-12cb56cafa4d/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:48.709 | 2026-03-15 14:36:48,709 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/68153f80-9ad1-493c-ab63-de81301ab3a6/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:49.209 | 2026-03-15 14:36:49,209 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/f94c1e92-7c83-4c87-aac5-73148c574e69/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:49.711 | 2026-03-15 14:36:49,711 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/1d039ea9-6f89-4141-9416-38ffa9cde1bb/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:50.213 | 2026-03-15 14:36:50,213 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/f3270c1e-6453-45c2-a09b-a2837a239da9/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:50.671 | INFO:     127.0.0.1:33158 - "GET /health HTTP/1.1" 200 OK
+2026-03-15 09:36:50.708 | 2026-03-15 14:36:50,708 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/ef2ffa23-a447-481a-a7e0-3757e7564f96/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:51.207 | 2026-03-15 14:36:51,206 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/74c6a10c-cf98-44be-92d4-7e6e352662c0/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:51.710 | 2026-03-15 14:36:51,710 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/b34e3b1e-27d3-4d3f-a953-0e9d03eb5a82/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:52.207 | 2026-03-15 14:36:52,207 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/d1bce25e-2352-463a-a13f-559e06453f1d/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:52.707 | 2026-03-15 14:36:52,707 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/aadca07b-a802-4a70-8e81-8f1f3e2cc898/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:53.208 | 2026-03-15 14:36:53,207 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/3af9e884-0fde-4517-94d6-53d984e9e804/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:53.709 | 2026-03-15 14:36:53,709 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/4f67815b-344e-4bf8-8e8d-6da023be8812/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:54.208 | 2026-03-15 14:36:54,208 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/08cabec3-2a3e-4a33-be5d-c24ed69cde9d/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:54.712 | 2026-03-15 14:36:54,712 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/ae5770b8-03ee-44c6-88f5-d7c3b154e48b/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:55.206 | 2026-03-15 14:36:55,206 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/4630d01f-a761-4538-851d-6a1a63abe9ad/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:55.707 | 2026-03-15 14:36:55,707 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/79ea2c8a-b344-45eb-aa58-522037d49300/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:56.207 | 2026-03-15 14:36:56,207 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/198277b6-8de0-4254-9880-5bd78d6caf4a/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:56.708 | 2026-03-15 14:36:56,707 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/862a2543-3428-4561-acbe-ac4722eea23b/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:57.207 | 2026-03-15 14:36:57,206 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/47cc8391-eb4c-46d6-98f4-ea4ae3cd31a0/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:57.708 | 2026-03-15 14:36:57,708 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/ae6ae75c-2d15-4a77-a33e-c06bcc3195cb/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:58.206 | 2026-03-15 14:36:58,205 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/b911f716-b416-4d1a-a25b-67eca116c547/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:58.707 | 2026-03-15 14:36:58,707 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/9aec19c7-7965-44db-a5f6-13dbe62c850b/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:59.208 | 2026-03-15 14:36:59,208 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/38b72c9a-8616-48f3-b033-7fedbe93ba8e/image "HTTP/1.1 200 OK"
+2026-03-15 09:36:59.706 | 2026-03-15 14:36:59,706 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/d382fcb9-6497-49f3-b6cc-38eeebd21736/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:00.208 | 2026-03-15 14:37:00,208 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/d6245680-1520-466c-aad8-419d02f997de/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:00.724 | 2026-03-15 14:37:00,724 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/eab7819d-3048-4e54-b302-00cc2a116366/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:00.763 | INFO:     127.0.0.1:56036 - "GET /health HTTP/1.1" 200 OK
+2026-03-15 09:37:01.208 | 2026-03-15 14:37:01,208 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/b4a09ef7-6240-4a49-a8ca-ce8e57d4508e/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:01.724 | 2026-03-15 14:37:01,724 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/ab58b132-3291-4dd9-8e56-bfa46fe9f41e/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:02.223 | 2026-03-15 14:37:02,222 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/eac64c8f-428d-4bae-a03e-7bad655ee1d6/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:02.722 | 2026-03-15 14:37:02,722 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/ccda31dc-4876-4a9c-88db-9f71be47f72f/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:03.222 | 2026-03-15 14:37:03,222 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/48b5b7f9-c51d-4429-924a-007cba234589/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:03.722 | 2026-03-15 14:37:03,722 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/cec43d45-6f61-4d79-975e-e2372128e1b8/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:04.222 | 2026-03-15 14:37:04,222 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/385c2de1-123d-4929-8250-f086b0c1b349/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:04.725 | 2026-03-15 14:37:04,725 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/8b538d5d-9efb-48a8-82b3-f7ee19526aff/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:05.223 | 2026-03-15 14:37:05,223 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/29f47c32-bc22-44bd-b705-0e746f9d70cf/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:05.726 | 2026-03-15 14:37:05,725 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/f2cc7763-1f97-454d-9250-0f842fbad6b3/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:06.223 | 2026-03-15 14:37:06,223 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/b1879113-d1e5-4788-aea6-93cd2d9411e4/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:06.721 | 2026-03-15 14:37:06,721 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/3933c096-e5a0-4f31-90ac-8097c861164c/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:07.221 | 2026-03-15 14:37:07,221 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/68a91372-ee1e-4429-8d5b-7468ec46f471/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:07.722 | 2026-03-15 14:37:07,722 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/226ed873-e6f2-414d-9106-46d0a07e507e/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:08.221 | 2026-03-15 14:37:08,221 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/5c3edf85-f733-4124-8797-4aeba4bf393f/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:08.722 | 2026-03-15 14:37:08,722 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/d9507d20-9bdc-4d24-8f24-fa63aab9d521/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:09.222 | 2026-03-15 14:37:09,222 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/956436ca-b8c0-4a60-9351-8aa6c31f4e35/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:09.723 | 2026-03-15 14:37:09,723 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/78fe73fd-12c8-4241-b36b-e27eaeae6f8d/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:10.222 | 2026-03-15 14:37:10,222 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/1623b7b1-3374-4dfb-919d-ebaf59dea4c2/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:10.723 | 2026-03-15 14:37:10,723 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/4d1651ea-ef15-4ec4-b009-ed420f8ca380/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:10.862 | INFO:     127.0.0.1:43148 - "GET /health HTTP/1.1" 200 OK
+2026-03-15 09:37:11.221 | 2026-03-15 14:37:11,221 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/7e4c1737-012a-4b90-be08-50546ba0407c/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:11.722 | 2026-03-15 14:37:11,721 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/03147075-6098-4dc9-b5cc-3c397c742edd/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:12.221 | 2026-03-15 14:37:12,221 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/4d7253db-3ea8-4fee-ae7c-f568c56701ab/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:12.739 | 2026-03-15 14:37:12,739 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/8b41c2cf-d39a-43b3-8b4f-565473edd593/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:13.239 | 2026-03-15 14:37:13,239 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/2c3b77e3-4133-456e-b03d-d8a419bab637/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:13.722 | 2026-03-15 14:37:13,722 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/4579e419-f5dc-4044-9390-40a906d4fcf7/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:14.222 | 2026-03-15 14:37:14,222 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/8e53de70-6565-4cd4-bfe6-f595bb7cb0ef/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:14.722 | 2026-03-15 14:37:14,722 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/b32bcfa1-06bf-4f4f-baee-247de4797fb8/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:15.221 | 2026-03-15 14:37:15,221 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/38ea1443-d6ed-478c-9abb-bd94f1e4ac4f/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:15.722 | 2026-03-15 14:37:15,722 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/c170a88e-9b11-406b-a631-2a8f639506f1/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:16.220 | 2026-03-15 14:37:16,220 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/6b37477e-f3e6-4dda-b5c8-71df8c732a4d/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:16.720 | 2026-03-15 14:37:16,720 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/541943ee-49c7-4cdf-b6f0-5d5426d240c3/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:17.221 | 2026-03-15 14:37:17,221 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/43976505-c92f-4794-bb8f-30b889f08d68/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:17.722 | 2026-03-15 14:37:17,722 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/11e8270f-8376-494b-a70e-08efe842a6e7/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:18.222 | 2026-03-15 14:37:18,222 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/a63d6f09-193f-4a81-8e8d-f24e9b89252d/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:18.722 | 2026-03-15 14:37:18,722 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/084e62ec-beb5-4543-ab08-ada8e085f178/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:19.222 | 2026-03-15 14:37:19,221 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/17eb3569-53aa-48c7-a2b7-69c256f80350/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:19.722 | 2026-03-15 14:37:19,722 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/aaa19e1d-74b1-44e5-991a-523aa8e0fc6a/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:20.223 | 2026-03-15 14:37:20,223 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/a70e07c2-7512-48b4-a9a0-6ecaba5cc495/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:20.723 | 2026-03-15 14:37:20,723 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/642eb957-fe4e-4859-a295-b073dafe9727/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:20.961 | INFO:     127.0.0.1:46168 - "GET /health HTTP/1.1" 200 OK
+2026-03-15 09:37:21.223 | 2026-03-15 14:37:21,223 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/1e0a1935-8053-43d1-86f7-a2b42db619b8/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:21.722 | 2026-03-15 14:37:21,722 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/7185187e-8df3-4429-a25b-60567948d664/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:22.224 | 2026-03-15 14:37:22,224 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/894fd672-b6b7-4fc1-8828-00e58d60c6fd/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:22.724 | 2026-03-15 14:37:22,724 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/04f47f3a-fad9-42ba-88a7-1d0393f22f95/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:23.223 | 2026-03-15 14:37:23,223 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/f7e39587-fbbb-4611-83b0-b3f50128862e/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:23.723 | 2026-03-15 14:37:23,723 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/770ae450-28e0-461e-900e-b5f367689c99/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:24.223 | 2026-03-15 14:37:24,222 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/55a37091-8f90-479d-a680-921aac36bcac/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:24.723 | 2026-03-15 14:37:24,723 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/e815e670-94f5-4ce7-9232-6f494a8f5eb4/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:25.222 | 2026-03-15 14:37:25,222 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/2fa48cbe-3b8a-4201-a3cb-dcd7f533b14a/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:25.722 | 2026-03-15 14:37:25,722 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/09a9c95f-e9d8-4833-9d4d-ce5e8a7ae732/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:26.222 | 2026-03-15 14:37:26,222 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/0b823dca-8834-4b9f-9753-c359738ca90e/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:26.721 | 2026-03-15 14:37:26,720 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/0b237f15-8071-4ba2-ae23-d660db11c8e8/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:27.220 | 2026-03-15 14:37:27,220 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/e599a24c-818c-46c2-bdf3-cae598703cc1/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:27.721 | 2026-03-15 14:37:27,721 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/ebb0d58d-ccc4-4616-b649-5b149efccfca/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:28.222 | 2026-03-15 14:37:28,222 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/3269a224-5743-4eb6-b69c-b8385137944e/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:28.720 | 2026-03-15 14:37:28,720 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/42aab399-f43c-4af8-95ff-732072af2457/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:29.221 | 2026-03-15 14:37:29,220 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/ec233316-423c-4188-b93a-16146d2647f0/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:29.721 | 2026-03-15 14:37:29,721 [httpx] INFO: HTTP Request: GET http://meet-control-server:3001/meetings/meetmind-session/video-frames/24b760f6-680d-4ee1-bae2-9943a1139733/image "HTTP/1.1 200 OK"
+2026-03-15 09:37:30.221 | INFO:     Shutting down
+2026-03-15 09:37:30.221 | 2026-03-15 14:37:30,221 [meetmind] INFO: Dashboard client disconnected. Total: 0
+2026-03-15 09:37:30.221 | INFO:     connection closed
+2026-03-15 09:37:30.321 | INFO:     Waiting for application shutdown.
+2026-03-15 09:37:30.321 | 2026-03-15 14:37:30,321 [bridge.sse_consumer] INFO: SSE consumer stopped. Events: 106, Texts: 0, Frames: 97, Errors: 0

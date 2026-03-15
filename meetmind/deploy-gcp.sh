@@ -90,7 +90,8 @@ gcloud run deploy meet-bot \
     --set-env-vars="ENABLE_AUDIO_INPUT=true,ENABLE_VIDEO_INPUT=true,CAPTURE_VIDEO_FRAMES=true" \
     --set-env-vars="CHAT_POLL_INTERVAL_MS=250,CAPTION_POLL_INTERVAL_MS=250,VIDEO_POLL_INTERVAL_MS=250" \
     --set-env-vars="TTS_BACKEND=piper,SPEECH_DELIVERY_MODE=meeting-microphone" \
-    --set-env-vars="MEET_AUDIO_SINK_NAME=meetbot_sink,MEET_AUDIO_SOURCE_NAME=meetbot_mic" \
+    --set-env-vars="MEET_AUDIO_SINK_NAME=meetbot_sink,MEET_AUDIO_OUTPUT_SINK_NAME=meetbot_meeting_sink,MEET_AUDIO_SOURCE_NAME=meetbot_mic" \
+    --set-env-vars="MEET_AUDIO_INPUT_DEVICE=meetbot_meeting_sink.monitor,AUDIO_OUTPUT_DEVICE=meetbot_sink" \
     --set-env-vars="MEET_PREFERRED_MICROPHONE_LABEL=MeetBot_Virtual_Microphone" \
     --quiet
 
@@ -113,7 +114,7 @@ gcloud run deploy meetmind-agent \
     --max-instances=3 --min-instances=0 \
     --port=8080 \
     --set-env-vars="GOOGLE_API_KEY=${GEMINI_KEY}" \
-    --set-env-vars="GEMINI_LIVE_MODEL=gemini-2.5-flash-native-audio" \
+    --set-env-vars="GEMINI_LIVE_MODEL=gemini-live-2.5-flash-native-audio" \
     --set-env-vars="CONTROL_BASE_URL=${CONTROL_URL}" \
     --set-env-vars="BOT_ID=bot-01,MEETING_ID=meetmind-session" \
     --set-env-vars="HOST=0.0.0.0,PORT=8080" \
@@ -144,5 +145,5 @@ echo ""
 echo "  To deploy agent into a meeting:"
 echo "  curl -X POST ${AGENT_URL}/api/deploy \\"
 echo "    -H 'Content-Type: application/json' \\"
-echo "    -d '{\"meeting_url\": \"https://meet.google.com/xxx-yyyy-zzz\", \"role_id\": \"meeting_scribe\"}'"
+echo "    -d '{\"meeting_url\": \"https://meet.google.com/xxx-yyyy-zzz\", \"role_id\": \"technical_reviewer\"}'"
 echo "═══════════════════════════════════════════════════════"

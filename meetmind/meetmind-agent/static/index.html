@@ -225,8 +225,8 @@ function renderLive(){const s=state.session||{};const fmt=s=>`${String(Math.floo
       </div>
       <div class="t-scroll" id="tScroll">
         ${state.transcript.length===0?'<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;color:#64748B;font-size:13px"><span style="font-size:32px">🎙️</span><div>Listening to meeting audio...</div></div>':''}
-        ${state.transcript.map(t=>`<div class="t-entry" style="border-left:3px solid ${t.isAgent?'#818CF8':t.kind==='dashboard'?'#F59E0B':'#334155'}">
-          <div class="t-meta"><span class="t-speaker" style="color:${t.isAgent?'#818CF8':t.kind==='dashboard'?'#F59E0B':'#94A3B8'}">${t.isAgent?'🧠 MeetMind':t.kind==='dashboard'?'📨 Dashboard':'👤 '+t.speaker}</span><span class="t-time">${t.time}</span></div>
+        ${state.transcript.map(t=>`<div class="t-entry" style="border-left:3px solid ${t.isAgent?'#818CF8':t.kind==='dashboard'?'#F59E0B':t.kind==='vision'?'#22C55E':'#334155'}">
+          <div class="t-meta"><span class="t-speaker" style="color:${t.isAgent?'#818CF8':t.kind==='dashboard'?'#F59E0B':t.kind==='vision'?'#22C55E':'#94A3B8'}">${t.isAgent?'🧠 MeetMind':t.kind==='dashboard'?'📨 Dashboard':t.kind==='vision'?'🖼️ Screen':'👤 '+t.speaker}</span><span class="t-time">${t.time}</span></div>
           <div class="t-text">${t.text}</div>
         </div>`).join('')}
       </div>
@@ -331,7 +331,13 @@ function startLive(){
     ws.onopen=()=>{state.botStatus='connected';render()};
     ws.onmessage=e=>{
       const d=JSON.parse(e.data);
-      if(d.type==='transcript'){state.transcript.push({text:d.text,speaker:d.speaker,kind:d.kind,isAgent:d.is_agent,time:new Date().toLocaleTimeString()});render()}
+      if(d.type==='transcript'){
+        const informationalUnknown = d.informational_only && /^unknown speaker$/i.test(d.speaker||'');
+        if(!informationalUnknown){
+          state.transcript.push({text:d.text,speaker:d.speaker,kind:d.kind,isAgent:d.is_agent,time:new Date().toLocaleTimeString()});
+          render();
+        }
+      }
       if(d.type==='frame_received'){state.frames++;const fc=document.querySelector('[data-frames]');/* update inline */}
       if(d.type==='bot_status'){state.botStatus=d.status;render()}
     };
