@@ -1,6 +1,30 @@
 services:
   # ═══════════════════════════════════════════
+  # Layer 2: meet-control-server (Event Bus + API)
+  # Starts FIRST — other services depend on it
+  # ═══════════════════════════════════════════
+  meet-control-server:
+    build:
+      context: ./meet-control-server
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+    volumes:
+      - meet-bot-data:/app/tmp:ro
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ═══════════════════════════════════════════
   # Layer 1: meet-bot (Browser + Media Runtime)
+  # Runs Chrome HEADLESS inside container
   # ═══════════════════════════════════════════
   meet-bot:
     build:
@@ -23,7 +47,8 @@ services:
       MEET_AUDIO_INPUT_DEVICE: meetbot_sink.monitor
       ENABLE_VIDEO_INPUT: "true"
       CAPTURE_VIDEO_FRAMES: "true"
-      VIDEO_POLL_INTERVAL_MS: "250"
+      ENABLE_VIDEO_ACTIVITY: "false"
+      VIDEO_POLL_INTERVAL_MS: "500"
       VIDEO_JPEG_QUALITY: "35"
       STT_COMMAND: "python3 /app/scripts/faster_whisper_transcribe.py {input}"
       FASTER_WHISPER_MODEL: base
@@ -41,8 +66,6 @@ services:
       MEET_PREFERRED_MICROPHONE_LABEL: MeetBot_Virtual_Microphone
     ports:
       - "3000:3000"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     shm_size: "2gb"
     volumes:
       - meet-bot-data:/app/tmp
@@ -53,29 +76,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 20s
-
-  # ═══════════════════════════════════════════
-  # Layer 2: meet-control-server (Event Bus + API)
-  # ═══════════════════════════════════════════
-  meet-control-server:
-    build:
-      context: ./meet-control-server
-    environment:
-      NODE_ENV: production
-      PORT: "3001"
-    volumes:
-      - meet-bot-data:/app/tmp:ro
-    ports:
-      - "3001:3001"
-    restart: unless-stopped
-    init: true
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      start_period: 30s
 
   # ═══════════════════════════════════════════
   # Layer 3: meetmind-agent (Gemini AI Brain)
@@ -87,10 +88,14 @@ services:
       meet-control-server:
         condition: service_healthy
     environment:
-      # Gemini API
-      GOOGLE_API_KEY: "${GOOGLE_API_KEY}"
-      GEMINI_LIVE_MODEL: "gemini-2.5-flash-native-audio"
-      # Control server connection
+      # Vertex AI configuration
+      GOOGLE_GENAI_USE_VERTEXAI: "true"
+      GOOGLE_CLOUD_PROJECT: "${GOOGLE_CLOUD_PROJECT}"
+      GOOGLE_CLOUD_LOCATION: "${GOOGLE_CLOUD_LOCATION:-us-central1}"
+      GOOGLE_APPLICATION_CREDENTIALS: "/tmp/keys/adc.json"
+      # Model — gemini-2.5-flash for text mode, gemini-live-2.5-flash-native-audio for audio
+      GEMINI_LIVE_MODEL: "${GEMINI_LIVE_MODEL:-gemini-2.5-flash}"
+      # Bridge
       CONTROL_BASE_URL: http://meet-control-server:3001
       BOT_ID: "bot-01"
       MEETING_ID: "${MEETING_ID:-meetmind-session}"
@@ -98,6 +103,8 @@ services:
       HOST: "0.0.0.0"
       PORT: "8080"
       DEBUG: "false"
+    volumes:
+      - ${GOOGLE_ADC_PATH:-~/.config/gcloud/application_default_credentials.json}:/tmp/keys/adc.json:ro
     ports:
       - "8080:8080"
     restart: unless-stopped

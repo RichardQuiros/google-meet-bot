@@ -20,6 +20,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from bridge.sse_consumer import SSEConsumer, TextEvent, VideoFrameEvent, BotStatusEvent
@@ -131,6 +132,12 @@ class DashboardMessage(BaseModel):
 @app.get("/health")
 async def health():
     return {"status": "ok", "service": "meetmind-agent"}
+
+
+@app.get("/")
+async def serve_dashboard():
+    """Serve the MeetMind dashboard."""
+    return FileResponse("static/index.html")
 
 
 @app.get("/api/roles")
