@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MeetMind AI — Dashboard</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0A0F1E;color:#E2E8F0;font-family:'DM Sans',sans-serif;min-height:100vh}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes spin{to{transform:rotate(360deg)}}
+input:focus,textarea:focus{border-color:#6366F1!important;box-shadow:0 0 0 2px #6366F120}
+button{cursor:pointer;transition:filter .15s}button:hover{filter:brightness(1.12)}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#0A0F1E}::-webkit-scrollbar-thumb{background:#1E293B;border-radius:3px}
+
+/* Header */
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:#0F172A;border-bottom:1px solid #1E293B;position:sticky;top:0;z-index:50}
+.logo{display:flex;align-items:center;gap:8px}
+.logo-t{font-family:'JetBrains Mono';font-weight:700;font-size:18px;color:#F1F5F9}
+.logo-b{font-family:'JetBrains Mono';font-size:10px;font-weight:600;background:#6366F1;color:#fff;padding:2px 6px;border-radius:4px;letter-spacing:1px}
+.nav{display:flex;align-items:center;gap:6px}
+.pill{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;font-family:'JetBrains Mono';background:#0F172A;border:1px solid #1E293B}
+.pill.act{background:#1E1B4B;border-color:#4338CA}
+.sess-tag{display:flex;align-items:center;gap:8px;padding:6px 12px;background:#10B98115;border:1px solid #10B98140;border-radius:20px;font-size:12px;font-family:'JetBrains Mono';color:#10B981}
+
+/* Main */
+.main{max-width:1200px;margin:0 auto;padding:24px 20px}
+
+/* Cards */
+.card{background:#0F172A;border:1px solid #1E293B;border-radius:12px;overflow:hidden;margin-bottom:16px}
+.card-h{display:flex;align-items:center;gap:8px;padding:12px 18px;border-bottom:1px solid #1E293B;background:#0D1324}
+.card-h span:first-child{font-size:16px}
+.card-t{font-family:'JetBrains Mono';font-size:13px;font-weight:600;color:#CBD5E1;flex:1}
+.card-b{padding:18px}
+
+/* Forms */
+.lbl{display:block;font-size:11px;font-family:'JetBrains Mono';font-weight:500;color:#64748B;margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px}
+.inp{width:100%;padding:12px 14px;background:#0A0F1E;border:1px solid #1E293B;border-radius:8px;color:#E2E8F0;font-size:14px;font-family:'DM Sans';outline:none}
+textarea.inp{min-height:80px;resize:vertical}
+
+/* Grid */
+.g2{display:grid;grid-template-columns:380px 1fr;gap:24px;align-items:start}
+.col{display:flex;flex-direction:column;gap:16px}
+
+/* Roles */
+.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rcard{padding:14px;border-radius:10px;border:1.5px solid #1E293B;cursor:pointer;transition:all .2s;position:relative;background:#0F172A}
+.rcard:hover{border-color:#334155}
+.rcard.sel{box-shadow:0 0 20px var(--rc)25}
+.rcard-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.rcard-icon{font-size:22px}
+.mode-b{font-size:10px;font-family:'JetBrains Mono';font-weight:600;padding:3px 8px;border-radius:12px}
+.rcard-name{font-weight:600;font-size:13px;color:#F1F5F9;margin-bottom:3px}
+.rcard-desc{font-size:11px;color:#64748B;line-height:1.4}
+.rcard-sel{position:absolute;bottom:0;left:0;right:0;text-align:center;padding:3px;font-size:10px;font-weight:600;color:#fff;border-radius:0 0 8px 8px}
+
+/* Deploy button */
+.deploy-btn{width:100%;padding:16px;background:linear-gradient(135deg,#6366F1,#4F46E5);border:none;border-radius:12px;color:#fff;font-size:16px;font-weight:700;font-family:'DM Sans';box-shadow:0 4px 24px #6366F140;transition:all .2s}
+.deploy-btn:disabled{opacity:.4;cursor:not-allowed}
+.err-ban{padding:10px 14px;background:#F59E0B15;border:1px solid #F59E0B40;border-radius:8px;font-size:12px;color:#F59E0B;text-align:center;margin-top:12px}
+
+/* Toggle */
+.tog{width:44px;height:24px;border-radius:12px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.tog-thumb{width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:2px;transition:transform .2s}
+
+/* Status bar */
+.sbar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:#0F172A;border:1px solid #1E293B;border-radius:12px 12px 0 0}
+.sbar-dot{width:10px;height:10px;border-radius:50%}
+.mono{font-size:13px;font-family:'JetBrains Mono';font-weight:600;color:#E2E8F0}
+.metric{text-align:center}
+.metric-l{font-size:9px;font-family:'JetBrains Mono';color:#475569;text-transform:uppercase;letter-spacing:1px}
+.end-btn{padding:8px 18px;background:#7F1D1D;border:1px solid #991B1B;border-radius:8px;color:#FCA5A5;font-size:12px;font-weight:600;font-family:'JetBrains Mono'}
+
+/* Live content */
+.live-grid{display:grid;grid-template-columns:1fr 300px;height:calc(100vh - 200px)}
+.transcript{display:flex;flex-direction:column;background:#0F172A;border:1px solid #1E293B;border-top:none;border-radius:0 0 0 12px}
+.t-scroll{flex:1;overflow-y:auto;padding:12px 18px}
+.t-entry{padding:8px 12px;margin-bottom:6px;border-radius:0 8px 8px 0;background:#0A0F1E}
+.t-meta{display:flex;justify-content:space-between;margin-bottom:3px}
+.t-speaker{font-size:11px;font-weight:600;font-family:'JetBrains Mono'}
+.t-time{font-size:10px;color:#475569;font-family:'JetBrains Mono'}
+.t-text{font-size:13px;color:#CBD5E1;line-height:1.5}
+.msg-bar{display:flex;gap:8px;padding:12px 18px;border-top:1px solid #1E293B}
+.msg-inp{flex:1;padding:10px 14px;background:#0A0F1E;border:1px solid #1E293B;border-radius:8px;color:#E2E8F0;font-size:13px;outline:none;font-family:'DM Sans'}
+.send-btn{padding:10px 16px;background:#4F46E5;border:none;border-radius:8px;color:#fff;font-size:16px;font-weight:700}
+.side{background:#0D1324;border:1px solid #1E293B;border-top:none;border-left:none;border-radius:0 0 12px 0;padding:18px;overflow-y:auto}
+.act-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #1E293B15;font-size:12px}
+.qcmd{display:block;width:100%;padding:8px 12px;background:#0A0F1E;border:1px solid #1E293B;border-radius:6px;color:#94A3B8;font-size:11px;text-align:left;margin-bottom:6px;font-family:'DM Sans'}
+.panel-t{font-family:'JetBrains Mono';font-size:12px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:1px}
+
+/* Review */
+.r-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px}
+.r-title{font-family:'JetBrains Mono';font-size:24px;font-weight:700;color:#F1F5F9;margin-bottom:6px}
+.r-cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.note-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #1E293B}
+.note-badge{font-size:10px;font-family:'JetBrains Mono';font-weight:600;padding:3px 8px;border-radius:6px;flex-shrink:0;text-transform:uppercase}
+.action-item{padding:12px 0;border-bottom:1px solid #1E293B}
+.action-task{font-size:14px;font-weight:500;color:#E2E8F0;margin-bottom:6px}
+.action-meta{display:flex;gap:14px;font-size:12px}
+
+/* Custom role form */
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mcard{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1.5px solid #1E293B;cursor:pointer;transition:all .2s}
+.mdot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+@media(max-width:900px){.g2,.live-grid,.r-cols{grid-template-columns:1fr!important}}
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+// ═══════════════════════════════════════════
+// MeetMind Dashboard — Vanilla JS (no React build needed)
+// ═══════════════════════════════════════════
+
+const API = window.location.origin + '/api';
+const WS_URL = (window.location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + window.location.host + '/ws/dashboard';
+
+const ROLES = [
+  {id:"devils_advocate",name:"Devil's Advocate",icon:"🔥",desc:"Challenges assumptions and probes for weaknesses",mode:"active",color:"#EF4444"},
+  {id:"technical_reviewer",name:"Technical Reviewer",icon:"⚙️",desc:"Evaluates feasibility and flags technical concerns",mode:"hybrid",color:"#F59E0B"},
+  {id:"meeting_scribe",name:"Meeting Scribe",icon:"📝",desc:"Silent observer — captures notes and actions",mode:"observer",color:"#10B981"},
+  {id:"code_reviewer",name:"Code Reviewer",icon:"💻",desc:"Analyzes screenshared code for bugs",mode:"hybrid",color:"#8B5CF6"},
+  {id:"brainstorm_partner",name:"Brainstorm Partner",icon:"💡",desc:"Actively contributes creative ideas",mode:"active",color:"#06B6D4"},
+  {id:"compliance_officer",name:"Compliance Officer",icon:"🛡️",desc:"Monitors for legal and regulatory concerns",mode:"hybrid",color:"#EC4899"},
+];
+const MODES = {
+  active:{label:"Active",desc:"Speaks proactively",color:"#EF4444"},
+  reactive:{label:"Reactive",desc:"Speaks when addressed",color:"#F59E0B"},
+  observer:{label:"Observer",desc:"Silent — reports after",color:"#10B981"},
+  hybrid:{label:"Hybrid",desc:"Interjects at key moments",color:"#8B5CF6"},
+};
+
+let state = {page:'deploy',session:null,summary:null,role:null,url:'',vision:true,deploying:false,err:null,
+  transcript:[],elapsed:0,frames:0,msg:'',botStatus:'idle',ws:null,timer:null,isCustom:false,
+  customName:'',customDesc:'',customMode:'reactive'};
+
+function render(){document.getElementById('app').innerHTML=`
+  ${renderHeader()}
+  <div class="main">${state.page==='deploy'?renderDeploy():state.page==='live'?renderLive():renderReview()}</div>
+`;bindEvents()}
+
+function renderHeader(){return`
+<header class="hdr">
+  <div class="logo"><span style="font-size:22px">🧠</span><span class="logo-t">MeetMind</span><span class="logo-b">AI</span></div>
+  <div class="nav">
+    ${['deploy','live','review'].map((p,i)=>`${i>0?'<span style="color:#334155;font-size:11px">→</span>':''}
+    <span class="pill${state.page===p?' act':''}"><span style="width:6px;height:6px;border-radius:50%;background:${state.page===p?'#818CF8':'#334155'};display:inline-block${state.page===p&&p==='live'?';animation:pulse 2s infinite':''}"></span>${p[0].toUpperCase()+p.slice(1)}</span>`).join('')}
+  </div>
+  <div>${state.session?`<span class="sess-tag"><span style="width:8px;height:8px;border-radius:50%;background:#10B981;animation:pulse 2s infinite"></span>${state.session.role_name}</span>`:''}</div>
+</header>`}
+
+function renderDeploy(){return`
+<div class="g2">
+  <div class="col">
+    <div class="card"><div class="card-h"><span>📡</span><span class="card-t">Meeting target</span></div>
+      <div class="card-b">
+        <label class="lbl">Google Meet URL</label>
+        <input class="inp" id="meetUrl" placeholder="https://meet.google.com/abc-defg-hij" value="${state.url}">
+      </div>
+    </div>
+    <div class="card"><div class="card-h"><span>🎛️</span><span class="card-t">Capabilities</span></div>
+      <div class="card-b">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><div style="font-size:14px;font-weight:500;color:#E2E8F0">Screen vision</div><div style="font-size:11px;color:#64748B">See and analyze shared screens</div></div>
+          <div class="tog" id="togVision" style="background:${state.vision?'#6366F1':'#1E293B'}"><div class="tog-thumb" style="transform:translateX(${state.vision?20:2}px)"></div></div>
+        </div>
+      </div>
+    </div>
+    <button class="deploy-btn" id="deployBtn" ${!state.url.includes('meet.google.com')||!state.role||state.deploying?'disabled':''}>${state.deploying?'⏳ Deploying agent...':'🚀 Deploy MeetMind Agent'}</button>
+    ${state.err?`<div class="err-ban">⚠️ ${state.err}</div>`:''}
+  </div>
+  <div>
+    <div class="card"><div class="card-h"><span>🎭</span><span class="card-t">Select role</span>
+      <button id="togCustom" style="background:#1E1B4B;border:1px solid #4338CA;border-radius:6px;color:#818CF8;font-size:11px;font-weight:600;padding:4px 10px;font-family:'JetBrains Mono'">${state.isCustom?'← Presets':'+ Custom'}</button>
+    </div>
+      <div class="card-b">${state.isCustom?renderCustomRole():renderRoleGrid()}</div>
+    </div>
+  </div>
+</div>`}
+
+function renderRoleGrid(){return`<div class="rgrid">${ROLES.map(r=>{
+  const sel=state.role===r.id;
+  const m=MODES[r.mode];
+  return`<div class="rcard${sel?' sel':''}" data-role="${r.id}" style="border-color:${sel?r.color:'#1E293B'};background:${sel?r.color+'10':'#0F172A'};${sel?'box-shadow:0 0 20px '+r.color+'25':''}">
+    <div class="rcard-top"><span class="rcard-icon">${r.icon}</span><span class="mode-b" style="background:${m.color}25;color:${m.color}">${m.label}</span></div>
+    <div class="rcard-name">${r.name}</div>
+    <div class="rcard-desc">${r.desc}</div>
+    ${sel?`<div class="rcard-sel" style="background:${r.color}">✓ Selected</div>`:''}
+  </div>`}).join('')}</div>`}
+
+function renderCustomRole(){return`
+  <label class="lbl">Role name</label>
+  <input class="inp" id="customName" placeholder="e.g. Product Strategy Advisor" value="${state.customName}">
+  <label class="lbl" style="margin-top:12px">Behavior description</label>
+  <textarea class="inp" id="customDesc" placeholder="Describe how the agent should behave...">${state.customDesc}</textarea>
+  <label class="lbl" style="margin-top:12px">Mode</label>
+  <div class="mgrid">${Object.entries(MODES).map(([k,v])=>`
+    <div class="mcard" data-cmode="${k}" style="border-color:${state.customMode===k?v.color:'#1E293B'};background:${state.customMode===k?v.color+'15':'#0F172A'}">
+      <div class="mdot" style="background:${v.color}"></div>
+      <div><div style="font-size:12px;font-weight:600;color:#E2E8F0">${v.label}</div><div style="font-size:10px;color:#64748B">${v.desc}</div></div>
+    </div>`).join('')}</div>`}
+
+function renderLive(){const s=state.session||{};const fmt=s=>`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+  const alive=state.botStatus==='joined'||state.botStatus==='in_meeting';
+  return`
+  <div class="sbar">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="sbar-dot" style="background:${alive?'#10B981':'#F59E0B'};box-shadow:0 0 8px ${alive?'#10B98180':'#F59E0B80'};animation:pulse 2s infinite"></span>
+      <span class="mono">${alive?'In meeting':state.botStatus||'Connecting...'}</span>
+    </div>
+    <div style="display:flex;gap:24px">
+      ${[['TIME',fmt(state.elapsed)],['ROLE',s.role_name||'-'],['MODE',(s.mode||'-').toUpperCase()],['FRAMES',String(state.frames)]].map(([l,v])=>`<div class="metric"><div class="metric-l">${l}</div><div class="mono">${v}</div></div>`).join('')}
+    </div>
+    <button class="end-btn" id="endBtn">■ End session</button>
+  </div>
+  <div class="live-grid">
+    <div class="transcript">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid #1E293B">
+        <span class="panel-t">Live transcript</span><span style="font-size:10px;color:#475569;font-family:'JetBrains Mono'">${state.transcript.length} entries</span>
+      </div>
+      <div class="t-scroll" id="tScroll">
+        ${state.transcript.length===0?'<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;color:#64748B;font-size:13px"><span style="font-size:32px">🎙️</span><div>Listening to meeting audio...</div></div>':''}
+        ${state.transcript.map(t=>`<div class="t-entry" style="border-left:3px solid ${t.isAgent?'#818CF8':t.kind==='dashboard'?'#F59E0B':t.kind==='vision'?'#22C55E':'#334155'}">
+          <div class="t-meta"><span class="t-speaker" style="color:${t.isAgent?'#818CF8':t.kind==='dashboard'?'#F59E0B':t.kind==='vision'?'#22C55E':'#94A3B8'}">${t.isAgent?'🧠 MeetMind':t.kind==='dashboard'?'📨 Dashboard':t.kind==='vision'?'🖼️ Screen':'👤 '+t.speaker}</span><span class="t-time">${t.time}</span></div>
+          <div class="t-text">${t.text}</div>
+        </div>`).join('')}
+      </div>
+      <div class="msg-bar">
+        <input class="msg-inp" id="msgInp" placeholder="Send a message to the agent..." value="${state.msg}">
+        <button class="send-btn" id="sendBtn">↵</button>
+      </div>
+    </div>
+    <div class="side">
+      <div class="panel-t" style="margin-bottom:12px">Agent activity</div>
+      ${[['🔊','Audio pipeline',alive?'#10B981':'#F59E0B'],['📸','Screen capture',state.frames>0?'#10B981':'#F59E0B'],['🧠','Role: '+(s.role_name||'-'),'#818CF8'],['🎯','Mode: '+(s.mode||'-'),'#818CF8'],['📊','Frames: '+state.frames,'#64748B']].map(([i,l,c])=>`
+        <div class="act-item"><span>${i}</span><span style="flex:1;color:#94A3B8">${l}</span><span style="width:8px;height:8px;border-radius:50%;background:${c}"></span></div>`).join('')}
+      <div class="panel-t" style="margin-top:20px;margin-bottom:8px">Quick commands</div>
+      ${['Summarize discussion so far','What action items have been mentioned?',"What's on the screen right now?",'Any concerns about what was discussed?'].map(c=>`<button class="qcmd" data-qcmd="${c}">${c}</button>`).join('')}
+    </div>
+  </div>`}
+
+function renderReview(){const sm=state.summary||{};const s=state.session||{};const notes=sm.notes||[];const actions=sm.action_items||[];const stats=sm.gemini_stats||{};
+  return`
+  <div class="r-head">
+    <div>
+      <div class="r-title">Meeting report</div>
+      <div style="font-size:13px;color:#64748B">Role: <strong>${s.role_name||'-'}</strong> | Mode: <strong>${s.mode||'-'}</strong> | Frames: <strong>${stats.frame_inputs||0}</strong> | Responses: <strong>${stats.responses_generated||0}</strong></div>
+    </div>
+    <button id="newBtn" style="padding:10px 20px;background:#6366F1;border:none;border-radius:8px;color:#fff;font-weight:600;font-size:13px">+ New session</button>
+  </div>
+  <div class="r-cols">
+    <div class="card"><div class="card-h"><span>📋</span><span class="card-t">Meeting notes</span></div><div class="card-b">
+      ${notes.length===0?'<div style="color:#475569;font-style:italic">No notes captured</div>':notes.map(n=>`
+        <div class="note-item"><span class="note-badge" style="background:${n.category==='decision'?'#10B98125':'#818CF825'};color:${n.category==='decision'?'#10B981':'#818CF8'}">${n.category}</span><span style="font-size:13px;color:#CBD5E1;line-height:1.4">${n.content}</span></div>`).join('')}
+    </div></div>
+    <div class="card"><div class="card-h"><span>✅</span><span class="card-t">Action items</span></div><div class="card-b">
+      ${actions.length===0?'<div style="color:#475569;font-style:italic">No action items captured</div>':actions.map(a=>`
+        <div class="action-item"><div class="action-task">${a.task}</div>
+          <div class="action-meta"><span style="color:#818CF8">👤 ${a.owner}</span><span style="color:#F59E0B">📅 ${a.deadline}</span><span style="font-weight:600;color:${a.priority==='high'?'#EF4444':a.priority==='medium'?'#F59E0B':'#10B981'}">● ${a.priority}</span></div>
+        </div>`).join('')}
+    </div></div>
+  </div>
+  ${sm.summary_context?`<div class="card" style="margin-top:16px"><div class="card-h"><span>📄</span><span class="card-t">Raw context</span></div><div class="card-b"><pre style="font-size:12px;color:#94A3B8;white-space:pre-wrap;line-height:1.5;margin:0">${sm.summary_context}</pre></div></div>`:''}`}
+
+// ═══ Event Binding ═══
+function bindEvents(){
+  // Deploy page
+  const urlInp=document.getElementById('meetUrl');
+  if(urlInp)urlInp.oninput=e=>{state.url=e.target.value;render()};
+
+  document.querySelectorAll('[data-role]').forEach(el=>el.onclick=()=>{state.role=el.dataset.role;render()});
+
+  const togV=document.getElementById('togVision');
+  if(togV)togV.onclick=()=>{state.vision=!state.vision;render()};
+
+  const togC=document.getElementById('togCustom');
+  if(togC)togC.onclick=()=>{state.isCustom=!state.isCustom;state.role=state.isCustom?'custom':null;render()};
+
+  const cName=document.getElementById('customName');
+  if(cName)cName.oninput=e=>{state.customName=e.target.value};
+  const cDesc=document.getElementById('customDesc');
+  if(cDesc)cDesc.oninput=e=>{state.customDesc=e.target.value};
+  document.querySelectorAll('[data-cmode]').forEach(el=>el.onclick=()=>{state.customMode=el.dataset.cmode;render()});
+
+  const dBtn=document.getElementById('deployBtn');
+  if(dBtn)dBtn.onclick=deploy;
+
+  // Live page
+  const eBtn=document.getElementById('endBtn');
+  if(eBtn)eBtn.onclick=endSession;
+  const sBtn=document.getElementById('sendBtn');
+  if(sBtn)sBtn.onclick=sendMsg;
+  const mInp=document.getElementById('msgInp');
+  if(mInp){mInp.oninput=e=>{state.msg=e.target.value};mInp.onkeydown=e=>{if(e.key==='Enter')sendMsg()}}
+  document.querySelectorAll('[data-qcmd]').forEach(el=>el.onclick=()=>{state.msg=el.dataset.qcmd;sendMsg()});
+
+  // Review page
+  const nBtn=document.getElementById('newBtn');
+  if(nBtn)nBtn.onclick=()=>{state={...state,page:'deploy',session:null,summary:null,role:null,url:'',transcript:[],elapsed:0,frames:0,botStatus:'idle'};render()};
+
+  // Auto-scroll transcript
+  const ts=document.getElementById('tScroll');
+  if(ts)ts.scrollTop=ts.scrollHeight;
+}
+
+// ═══ Actions ═══
+async function deploy(){
+  state.deploying=true;state.err=null;render();
+  const body={meeting_url:state.url,role_id:state.isCustom?'custom':state.role,vision_enabled:state.vision};
+  if(state.isCustom){body.custom_role_name=state.customName;body.custom_role_description=state.customDesc;body.custom_role_mode=state.customMode}
+  try{
+    const r=await fetch(API+'/deploy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.detail||'Server error '+r.status)}
+    const data=await r.json();
+    state.session=data;state.page='live';state.botStatus='joining';state.deploying=false;
+    render();startLive();
+  }catch(e){state.err=e.message;state.deploying=false;render()}
+}
+
+function startLive(){
+  // Timer
+  state.timer=setInterval(()=>{state.elapsed++;const el=document.querySelector('.metric:first-child .mono');if(el)el.textContent=`${String(Math.floor(state.elapsed/60)).padStart(2,'0')}:${String(state.elapsed%60).padStart(2,'0')}`;},1000);
+  // WebSocket
+  try{
+    const ws=new WebSocket(WS_URL);
+    ws.onopen=()=>{state.botStatus='connected';render()};
+    ws.onmessage=e=>{
+      const d=JSON.parse(e.data);
+      if(d.type==='transcript'){
+        const informationalUnknown = d.informational_only && /^unknown speaker$/i.test(d.speaker||'');
+        if(!informationalUnknown){
+          state.transcript.push({text:d.text,speaker:d.speaker,kind:d.kind,isAgent:d.is_agent,time:new Date().toLocaleTimeString()});
+          render();
+        }
+      }
+      if(d.type==='frame_received'){state.frames++;const fc=document.querySelector('[data-frames]');/* update inline */}
+      if(d.type==='bot_status'){state.botStatus=d.status;render()}
+    };
+    ws.onerror=()=>{};
+    state.ws=ws;
+  }catch(e){}
+}
+
+async function sendMsg(){
+  if(!state.msg.trim())return;
+  const text=state.msg;state.msg='';
+  state.transcript.push({text,speaker:'Dashboard',kind:'dashboard',isAgent:false,time:new Date().toLocaleTimeString()});
+  render();
+  try{await fetch(API+'/session/message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})})}catch(e){}
+}
+
+async function endSession(){
+  if(state.timer)clearInterval(state.timer);
+  if(state.ws)state.ws.close();
+  try{
+    const r=await fetch(API+'/session/end',{method:'POST'});
+    const d=await r.json();
+    state.summary=d;state.page='review';render();
+  }catch(e){
+    state.summary={notes:[],action_items:[],summary_context:'Session ended.',gemini_stats:{frame_inputs:state.frames}};
+    state.page='review';render();
+  }
+}
+
+// ═══ Init ═══
+render();
+</script>
+</body>
+</html>

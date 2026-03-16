@@ -757,6 +757,11 @@ export class RuntimeAgent {
     }
 
     try {
+      await this.ensureSpeechDeliveryReady();
+      this.log('realtime speech delivery ready', {
+        deliveryMode: this.getSpeechDeliveryMode()
+      });
+
       const transport = await relay.start();
       await this.emitMediaTransportReady({
         meetingId: this.activeMeetingId,
@@ -790,7 +795,8 @@ export class RuntimeAgent {
           channels: this.parseIntegerWithFallback(
             process.env.REALTIME_AGENT_AUDIO_CHANNELS,
             1
-          )
+          ),
+          outputDevice: process.env.MEET_AUDIO_SINK_NAME ?? ''
         },
         meetingAudioOutput: {
           targetUrl: process.env.REALTIME_MEETING_AUDIO_RTP_URL,

@@ -1,0 +1,180 @@
+services:
+  # ═══════════════════════════════════════════
+  # Layer 2: meet-control-server (Event Bus + API)
+  # Starts FIRST — other services depend on it
+  # ═══════════════════════════════════════════
+  meet-control-server:
+    build:
+      context: ./meet-control-server
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+    volumes:
+      - meet-bot-data:/app/tmp:ro
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ═══════════════════════════════════════════
+  # Layer 1: meet-bot (Browser + Media Runtime)
+  # Runs Chrome HEADLESS inside container
+  # ═══════════════════════════════════════════
+  meet-bot:
+    build:
+      context: ./meet-bot
+    command: ["npm", "run", "start:supervisor"]
+    depends_on:
+      meet-control-server:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      BOT_ID: "bot-01"
+      BOT_DISPLAY_NAME: "MeetMind AI"
+      CONTROL_BASE_URL: http://meet-control-server:3001
+      COMMAND_LONG_POLL_MS: "1000"
+      CHAT_POLL_INTERVAL_MS: "250"
+      CAPTION_POLL_INTERVAL_MS: "250"
+      ENABLE_AUDIO_INPUT: "true"
+      AUDIO_SEGMENT_DURATION_MS: "1200"
+      AUDIO_SEGMENT_COOLDOWN_MS: "50"
+      MEET_AUDIO_INPUT_FORMAT: pulse
+      MEET_AUDIO_INPUT_DEVICE: meetbot_meeting_sink.monitor
+      ENABLE_VIDEO_INPUT: "true"
+      CAPTURE_VIDEO_FRAMES: "true"
+      ENABLE_VIDEO_ACTIVITY: "false"
+      VIDEO_POLL_INTERVAL_MS: "500"
+      VIDEO_JPEG_QUALITY: "55"
+      STT_COMMAND: "python3 /app/scripts/faster_whisper_transcribe.py {input}"
+      FASTER_WHISPER_MODEL: base
+      FASTER_WHISPER_DEVICE: cpu
+      TTS_BACKEND: piper
+      PIPER_PATH: /opt/piper/piper
+      PIPER_MODEL: /models/piper/en_US-lessac-medium.onnx
+      SPEECH_DELIVERY_MODE: meeting-microphone
+      AUDIO_OUTPUT_BACKEND: paplay
+      AUDIO_OUTPUT_DEVICE: meetbot_sink
+      PULSE_LATENCY_MSEC: "${PULSE_LATENCY_MSEC:-20}"
+      MEET_AUDIO_SINK_NAME: meetbot_sink
+      MEET_AUDIO_SINK_VOLUME: "${MEET_AUDIO_SINK_VOLUME:-100%}"
+      MEET_AUDIO_OUTPUT_SINK_NAME: meetbot_meeting_sink
+      MEET_AUDIO_SOURCE_NAME: meetbot_mic
+      MEET_AUDIO_SOURCE_VOLUME: "${MEET_AUDIO_SOURCE_VOLUME:-100%}"
+      MEET_AUDIO_SINK_DESCRIPTION: MeetBot_Virtual_Mic_Sink
+      MEET_AUDIO_OUTPUT_SINK_DESCRIPTION: MeetBot_Meeting_Playback
+      MEET_AUDIO_SOURCE_DESCRIPTION: MeetBot_Virtual_Microphone
+      MEET_PREFERRED_MICROPHONE_LABEL: MeetBot_Virtual_Microphone
+      REALTIME_PUBLIC_HOST: meet-bot
+      REALTIME_AGENT_AUDIO_RTP_PORT: "5004"
+      REALTIME_AGENT_AUDIO_LISTEN_TIMEOUT_S: "${REALTIME_AGENT_AUDIO_LISTEN_TIMEOUT_S:-3600}"
+      REALTIME_AGENT_AUDIO_FILTER: "${REALTIME_AGENT_AUDIO_FILTER:-highpass=f=70,lowpass=f=9000,acompressor=threshold=-18dB:ratio=2.5:attack=5:release=60:makeup=1,alimiter=limit=0.88:level=disabled}"
+      REALTIME_AGENT_AUDIO_SAMPLE_RATE: "24000"
+      REALTIME_AGENT_AUDIO_CHANNELS: "1"
+      REALTIME_MEETING_AUDIO_RTP_URL: "rtp://meetmind-agent:5006"
+      REALTIME_MEETING_AUDIO_SAMPLE_RATE: "16000"
+      REALTIME_MEETING_AUDIO_CHANNELS: "1"
+    ports:
+      - "3000:3000"
+      - "5004:5004/udp"
+    shm_size: "2gb"
+    volumes:
+      - meet-bot-data:/app/tmp
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ═══════════════════════════════════════════
+  # Layer 3: meetmind-agent (Gemini AI Brain)
+  # ═══════════════════════════════════════════
+  meetmind-agent:
+    build:
+      context: ./meetmind-agent
+    depends_on:
+      meet-control-server:
+        condition: service_healthy
+    environment:
+      # Vertex AI configuration
+      GOOGLE_GENAI_USE_VERTEXAI: "true"
+      GOOGLE_CLOUD_PROJECT: "${GOOGLE_CLOUD_PROJECT:-meetmind-al}"
+      GOOGLE_CLOUD_LOCATION: "${GOOGLE_CLOUD_LOCATION:-us-central1}"
+      GOOGLE_APPLICATION_CREDENTIALS: "/tmp/keys/adc.json"
+      # Model — gemini-2.5-flash for text mode, gemini-live-2.5-flash-native-audio for audio
+      GEMINI_LIVE_MODEL: "${GEMINI_LIVE_MODEL:-gemini-live-2.5-flash-native-audio}"
+      GEMINI_NOTES_LIVE_MODEL: "${GEMINI_NOTES_LIVE_MODEL:-gemini-2.0-flash-live-preview-04-09}"
+      GEMINI_REALTIME_MODEL: "${GEMINI_REALTIME_MODEL:-gemini-live-2.5-flash-native-audio}"
+      GEMINI_REALTIME_GREETING: "${GEMINI_REALTIME_GREETING:-false}"
+      ENABLE_REALTIME_VOICE: "true"
+      REALTIME_AUDIO_SUPPRESS_MS: "${REALTIME_AUDIO_SUPPRESS_MS:-320}"
+      REALTIME_AUDIO_INPUT_CHUNK_MS: "${REALTIME_AUDIO_INPUT_CHUNK_MS:-30}"
+      REALTIME_VAD_PREFIX_MS: "${REALTIME_VAD_PREFIX_MS:-80}"
+      REALTIME_VAD_SILENCE_MS: "${REALTIME_VAD_SILENCE_MS:-180}"
+      REALTIME_MAX_OUTPUT_TOKENS: "${REALTIME_MAX_OUTPUT_TOKENS:-320}"
+      REALTIME_CONTEXT_WINDOW_ITEMS: "${REALTIME_CONTEXT_WINDOW_ITEMS:-10}"
+      REALTIME_CONTEXT_ITEM_MAX_CHARS: "${REALTIME_CONTEXT_ITEM_MAX_CHARS:-240}"
+      REALTIME_OUTPUT_IDLE_END_MS: "${REALTIME_OUTPUT_IDLE_END_MS:-850}"
+      REALTIME_OUTPUT_PLAYBACK_CHUNK_MS: "${REALTIME_OUTPUT_PLAYBACK_CHUNK_MS:-20}"
+      REALTIME_OUTPUT_KEEPALIVE_MS: "${REALTIME_OUTPUT_KEEPALIVE_MS:-1000}"
+      REALTIME_OUTPUT_DELIVERY_MODE: "${REALTIME_OUTPUT_DELIVERY_MODE:-hybrid}"
+      REALTIME_FORCE_TTS_MIRROR: "${REALTIME_FORCE_TTS_MIRROR:-false}"
+      REALTIME_AUDIO_SILENCE_RMS: "${REALTIME_AUDIO_SILENCE_RMS:-160}"
+      REALTIME_AUDIO_STREAM_END_MS: "${REALTIME_AUDIO_STREAM_END_MS:-700}"
+      REALTIME_SEND_AUDIO_STREAM_END: "${REALTIME_SEND_AUDIO_STREAM_END:-false}"
+      REALTIME_MANUAL_ACTIVITY_DETECTION: "${REALTIME_MANUAL_ACTIVITY_DETECTION:-true}"
+      REALTIME_TRANSCRIPT_FALLBACK: "${REALTIME_TRANSCRIPT_FALLBACK:-false}"
+      REALTIME_IGNORE_SSE_AUDIO_TRANSCRIPTS: "${REALTIME_IGNORE_SSE_AUDIO_TRANSCRIPTS:-true}"
+      REALTIME_TRANSCRIPT_FALLBACK_COOLDOWN_S: "${REALTIME_TRANSCRIPT_FALLBACK_COOLDOWN_S:-6}"
+      REALTIME_TRANSCRIPT_FALLBACK_AFTER_LIVE_S: "${REALTIME_TRANSCRIPT_FALLBACK_AFTER_LIVE_S:-2.5}"
+      REALTIME_ACTIVITY_HANDLING: "${REALTIME_ACTIVITY_HANDLING:-no_interruption}"
+      REALTIME_TURN_COVERAGE: "${REALTIME_TURN_COVERAGE:-all_input}"
+      REALTIME_IGNORE_SERVER_INTERRUPTION: "${REALTIME_IGNORE_SERVER_INTERRUPTION:-true}"
+      REALTIME_SPEECH_START_RMS: "${REALTIME_SPEECH_START_RMS:-900}"
+      REALTIME_SPEECH_END_RMS: "${REALTIME_SPEECH_END_RMS:-420}"
+      REALTIME_SPEECH_END_MS: "${REALTIME_SPEECH_END_MS:-360}"
+      REALTIME_MAX_TURN_MS: "${REALTIME_MAX_TURN_MS:-10000}"
+      REALTIME_SESSION_RESUMPTION: "${REALTIME_SESSION_RESUMPTION:-true}"
+      REALTIME_WS_RECONNECT_MS: "${REALTIME_WS_RECONNECT_MS:-250}"
+      REALTIME_WS_PING_INTERVAL_S: "${REALTIME_WS_PING_INTERVAL_S:-30}"
+      REALTIME_WS_PING_TIMEOUT_S: "${REALTIME_WS_PING_TIMEOUT_S:-60}"
+      REALTIME_WS_OPEN_TIMEOUT_S: "${REALTIME_WS_OPEN_TIMEOUT_S:-20}"
+      REALTIME_WS_CLOSE_TIMEOUT_S: "${REALTIME_WS_CLOSE_TIMEOUT_S:-10}"
+      REALTIME_WS_MAX_QUEUE: "${REALTIME_WS_MAX_QUEUE:-64}"
+      REALTIME_WS_WRITE_LIMIT: "${REALTIME_WS_WRITE_LIMIT:-262144}"
+      HYBRID_INTERVENTION_COOLDOWN_S: "${HYBRID_INTERVENTION_COOLDOWN_S:-18}"
+      REALTIME_DEBUG: "true"
+      REALTIME_DEBUG_DIR: "/tmp/meetmind-debug"
+      # Bridge
+      CONTROL_BASE_URL: http://meet-control-server:3001
+      BOT_ID: "bot-01"
+      MEETING_ID: "${MEETING_ID:-meetmind-session}"
+      # Server
+      HOST: "0.0.0.0"
+      PORT: "8080"
+      DEBUG: "false"
+    volumes:
+      - ${GOOGLE_ADC_PATH:-../.gcloud-adc/application_default_credentials.json}:/tmp/keys/adc.json:ro
+      - ./meetmind-agent/runtime-debug:/tmp/meetmind-debug
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  meet-bot-data:
