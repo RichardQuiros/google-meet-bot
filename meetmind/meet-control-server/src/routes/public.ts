@@ -206,6 +206,34 @@ export async function publicRoutes(app: FastifyInstance, store: InMemoryStore) {
     return reply.code(201).send(command);
   });
 
+  app.post('/bots/:botId/leave', async (request, reply) => {
+    const { botId } = request.params as { botId: string };
+    const body = (request.body ?? {}) as {
+      meetingId?: string;
+    };
+
+    const bot = store.getBot(botId);
+    if (!bot) {
+      return reply.code(404).send({ error: 'Bot not found' });
+    }
+
+    const meetingId = body?.meetingId ?? bot.meetingId;
+    if (!meetingId) {
+      return reply.code(400).send({
+        error: 'meetingId is required if bot has no meetingId assigned'
+      });
+    }
+
+    const command = store.enqueueCommand({
+      type: 'bot.leave',
+      botId,
+      meetingId,
+      payload: {}
+    });
+
+    return reply.code(201).send(command);
+  });
+
   app.post('/bots/:botId/speak', async (request, reply) => {
     const { botId } = request.params as { botId: string };
     const body = request.body as {
