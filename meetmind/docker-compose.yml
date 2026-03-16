@@ -163,7 +163,7 @@ services:
       PORT: "8080"
       DEBUG: "false"
     volumes:
-      - ${GOOGLE_ADC_PATH:-../.gcloud-adc/application_default_credentials.json}:/tmp/keys/adc.json:ro
+      - "${GOOGLE_ADC_PATH:?Set GOOGLE_ADC_PATH to your local Application Default Credentials JSON file}:/tmp/keys/adc.json:ro"
       - ./meetmind-agent/runtime-debug:/tmp/meetmind-debug
     ports:
       - "8080:8080"
