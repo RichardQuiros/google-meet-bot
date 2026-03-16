@@ -61,11 +61,11 @@ class RealtimeVoiceSession:
         self.transcript_fallback_after_live_s = float(
             os.getenv("REALTIME_TRANSCRIPT_FALLBACK_AFTER_LIVE_S", "2.5")
         )
-        self.input_suppress_ms = int(os.getenv("REALTIME_AUDIO_SUPPRESS_MS", "900"))
-        self.input_chunk_ms = int(os.getenv("REALTIME_AUDIO_INPUT_CHUNK_MS", "40"))
+        self.input_suppress_ms = int(os.getenv("REALTIME_AUDIO_SUPPRESS_MS", "320"))
+        self.input_chunk_ms = int(os.getenv("REALTIME_AUDIO_INPUT_CHUNK_MS", "30"))
         self.vad_prefix_ms = int(os.getenv("REALTIME_VAD_PREFIX_MS", "80"))
-        self.vad_silence_ms = int(os.getenv("REALTIME_VAD_SILENCE_MS", "220"))
-        self.max_output_tokens = int(os.getenv("REALTIME_MAX_OUTPUT_TOKENS", "80"))
+        self.vad_silence_ms = int(os.getenv("REALTIME_VAD_SILENCE_MS", "180"))
+        self.max_output_tokens = int(os.getenv("REALTIME_MAX_OUTPUT_TOKENS", "320"))
         self.context_window_items = max(
             4,
             int(os.getenv("REALTIME_CONTEXT_WINDOW_ITEMS", "8")),
@@ -74,7 +74,7 @@ class RealtimeVoiceSession:
             120,
             int(os.getenv("REALTIME_CONTEXT_ITEM_MAX_CHARS", "220")),
         )
-        self.output_idle_end_ms = int(os.getenv("REALTIME_OUTPUT_IDLE_END_MS", "700"))
+        self.output_idle_end_ms = int(os.getenv("REALTIME_OUTPUT_IDLE_END_MS", "850"))
         self.output_playback_chunk_ms = int(
             os.getenv("REALTIME_OUTPUT_PLAYBACK_CHUNK_MS", "20")
         )
@@ -111,9 +111,9 @@ class RealtimeVoiceSession:
         self.speech_end_rms = int(
             os.getenv("REALTIME_SPEECH_END_RMS", str(max(self.local_silence_rms * 2, 350)))
         )
-        self.speech_end_ms = int(os.getenv("REALTIME_SPEECH_END_MS", "480"))
+        self.speech_end_ms = int(os.getenv("REALTIME_SPEECH_END_MS", "360"))
         self.max_turn_ms = int(os.getenv("REALTIME_MAX_TURN_MS", "10000"))
-        self.reconnect_delay_ms = int(os.getenv("REALTIME_WS_RECONNECT_MS", "1500"))
+        self.reconnect_delay_ms = int(os.getenv("REALTIME_WS_RECONNECT_MS", "250"))
         self.ws_ping_interval_s = float(os.getenv("REALTIME_WS_PING_INTERVAL_S", "30"))
         self.ws_ping_timeout_s = float(os.getenv("REALTIME_WS_PING_TIMEOUT_S", "60"))
         self.ws_open_timeout_s = float(os.getenv("REALTIME_WS_OPEN_TIMEOUT_S", "20"))

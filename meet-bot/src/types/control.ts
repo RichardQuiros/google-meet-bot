@@ -70,6 +70,11 @@ export type BotJoinCommand = CommandEnvelope<
   }
 >;
 
+export type BotLeaveCommand = CommandEnvelope<
+  'bot.leave',
+  Record<string, never>
+>;
+
 export type SpeechSayCommand = CommandEnvelope<
   'speech.say',
   {
@@ -81,7 +86,7 @@ export type SpeechSayCommand = CommandEnvelope<
   }
 >;
 
-export type BotCommand = ChatSendCommand | BotJoinCommand | SpeechSayCommand;
+export type BotCommand = ChatSendCommand | BotJoinCommand | BotLeaveCommand | SpeechSayCommand;
 
 type SessionEventBase<TType extends string, TPayload> = {
   type: TType;

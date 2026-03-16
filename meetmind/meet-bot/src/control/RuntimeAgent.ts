@@ -150,6 +150,9 @@ export class RuntimeAgent {
         case 'bot.join':
           result = await this.handleJoinCommand(command);
           break;
+        case 'bot.leave':
+          result = await this.handleLeaveCommand(command);
+          break;
         case 'chat.send':
           result = await this.handleChatSendCommand(command);
           break;
@@ -214,6 +217,25 @@ export class RuntimeAgent {
 
     return {
       text: command.payload.text
+    };
+  }
+
+  private async handleLeaveCommand(
+    command: Extract<BotCommand, { type: 'bot.leave' }>
+  ): Promise<Record<string, unknown>> {
+    await this.stopMediaObservers();
+    await this.bot.close().catch(() => {});
+
+    this.activeMeetingId = undefined;
+    this.lastJoinCommand = undefined;
+    this.speechOutput = undefined;
+    this.realtimeMediaRelay = undefined;
+
+    await this.sendStatus('closed');
+
+    return {
+      meetingId: command.meetingId,
+      status: 'closed'
     };
   }
 
@@ -611,6 +633,7 @@ export class RuntimeAgent {
     this.observerPage = undefined;
     this.pendingVideoFrame = undefined;
     this.realtimeMediaAnnounced = false;
+    this.videoFrameFlushPromise = undefined;
   }
 
   private async ensureRuntimeHealth(): Promise<void> {

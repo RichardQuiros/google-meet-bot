@@ -257,12 +257,15 @@ async def end_session():
     
     runtime: AgentPresenceRuntime = active_session.get("runtime")
     stats = runtime.get_stats() if runtime else {}
+    generated_summary = ""
+    if runtime:
+        generated_summary = await runtime.generate_post_meeting_summary()
     
     await _stop_session()
     
     notes = get_session_notes()
     action_items = get_session_action_items()
-    summary_context = get_session_summary_context()
+    summary_context = generated_summary or get_session_summary_context()
     clear_session_data()
     
     return EndSessionResponse(

@@ -29,6 +29,7 @@ class CommandSender:
     
     Actions:
     - join: Tell the bot to join a Google Meet
+    - leave: Tell the bot to leave/reset the active Google Meet session
     - chat: Send a text message in the Meet chat
     - speak: Speak via TTS in the meeting
     """
@@ -83,6 +84,27 @@ class CommandSender:
                 "microphone": microphone,
             },
         )
+
+    async def leave(self, wait_for_completion: bool = True, timeout_s: float = 20.0) -> CommandResult:
+        """Tell the bot to leave/reset the active meeting session."""
+        result = await self._send_command(
+            f"/bots/{self.bot_id}/leave",
+            {
+                "meetingId": self.meeting_id,
+            },
+        )
+        if not result.success or not wait_for_completion or not result.command_id:
+            return result
+
+        completion = await self._wait_for_command_completion(result.command_id, timeout_s=timeout_s)
+        if completion is None:
+            return CommandResult(
+                success=False,
+                command_id=result.command_id,
+                error="Leave command timed out while waiting for completion",
+                data=result.data,
+            )
+        return completion
     
     async def speak(
         self,
@@ -213,3 +235,45 @@ class CommandSender:
             return CommandResult(success=False, error="Command timed out")
         except Exception as e:
             return CommandResult(success=False, error=str(e))
+
+    async def _wait_for_command_completion(
+        self,
+        command_id: str,
+        *,
+        timeout_s: float = 20.0,
+        poll_interval_s: float = 0.35,
+    ) -> Optional[CommandResult]:
+        if not self._client:
+            return None
+
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + timeout_s
+
+        while loop.time() < deadline:
+            try:
+                response = await self._client.get(f"/commands/{command_id}")
+                if response.status_code != 200:
+                    await asyncio.sleep(poll_interval_s)
+                    continue
+
+                data = response.json()
+                status = data.get("status")
+                if status == "completed":
+                    return CommandResult(
+                        success=True,
+                        command_id=command_id,
+                        data=data,
+                    )
+                if status == "failed":
+                    return CommandResult(
+                        success=False,
+                        command_id=command_id,
+                        error=data.get("error", "Command failed"),
+                        data=data,
+                    )
+            except Exception as error:
+                logger.warning("Command status poll failed for %s: %s", command_id, error)
+
+            await asyncio.sleep(poll_interval_s)
+
+        return None
