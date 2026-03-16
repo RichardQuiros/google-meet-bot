@@ -1,0 +1,270 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: __SERVICE_NAME__
+  labels:
+    cloud.googleapis.com/location: __REGION__
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "1"
+        autoscaling.knative.dev/maxScale: "1"
+        run.googleapis.com/container-dependencies: '{"meet-bot":["meet-control-server"],"meetmind-agent":["meet-control-server","meet-bot"]}'
+        run.googleapis.com/cpu-throttling: "false"
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      containerConcurrency: 10
+      timeoutSeconds: 3600
+      serviceAccountName: __SERVICE_ACCOUNT__
+      containers:
+        - name: meetmind-agent
+          image: __IMAGE_BASE__/meetmind-agent:latest
+          ports:
+            - name: http1
+              containerPort: 8080
+          env:
+            - name: GOOGLE_GENAI_USE_VERTEXAI
+              value: "true"
+            - name: GOOGLE_CLOUD_PROJECT
+              value: __PROJECT_ID__
+            - name: GOOGLE_CLOUD_LOCATION
+              value: __REGION__
+            - name: GEMINI_LIVE_MODEL
+              value: gemini-live-2.5-flash-native-audio
+            - name: GEMINI_NOTES_LIVE_MODEL
+              value: gemini-2.0-flash-live-preview-04-09
+            - name: GEMINI_REALTIME_MODEL
+              value: gemini-live-2.5-flash-native-audio
+            - name: GEMINI_REALTIME_GREETING
+              value: "false"
+            - name: ENABLE_REALTIME_VOICE
+              value: "true"
+            - name: REALTIME_AUDIO_SUPPRESS_MS
+              value: "320"
+            - name: REALTIME_AUDIO_INPUT_CHUNK_MS
+              value: "30"
+            - name: REALTIME_VAD_PREFIX_MS
+              value: "80"
+            - name: REALTIME_VAD_SILENCE_MS
+              value: "180"
+            - name: REALTIME_MAX_OUTPUT_TOKENS
+              value: "320"
+            - name: REALTIME_CONTEXT_WINDOW_ITEMS
+              value: "10"
+            - name: REALTIME_CONTEXT_ITEM_MAX_CHARS
+              value: "240"
+            - name: REALTIME_OUTPUT_IDLE_END_MS
+              value: "850"
+            - name: REALTIME_OUTPUT_PLAYBACK_CHUNK_MS
+              value: "20"
+            - name: REALTIME_OUTPUT_KEEPALIVE_MS
+              value: "1000"
+            - name: REALTIME_OUTPUT_DELIVERY_MODE
+              value: hybrid
+            - name: REALTIME_FORCE_TTS_MIRROR
+              value: "false"
+            - name: REALTIME_AUDIO_SILENCE_RMS
+              value: "160"
+            - name: REALTIME_AUDIO_STREAM_END_MS
+              value: "700"
+            - name: REALTIME_SEND_AUDIO_STREAM_END
+              value: "false"
+            - name: REALTIME_MANUAL_ACTIVITY_DETECTION
+              value: "true"
+            - name: REALTIME_TRANSCRIPT_FALLBACK
+              value: "false"
+            - name: REALTIME_IGNORE_SSE_AUDIO_TRANSCRIPTS
+              value: "true"
+            - name: REALTIME_TRANSCRIPT_FALLBACK_COOLDOWN_S
+              value: "6"
+            - name: REALTIME_TRANSCRIPT_FALLBACK_AFTER_LIVE_S
+              value: "2.5"
+            - name: REALTIME_ACTIVITY_HANDLING
+              value: no_interruption
+            - name: REALTIME_TURN_COVERAGE
+              value: all_input
+            - name: REALTIME_IGNORE_SERVER_INTERRUPTION
+              value: "true"
+            - name: REALTIME_SPEECH_START_RMS
+              value: "900"
+            - name: REALTIME_SPEECH_END_RMS
+              value: "420"
+            - name: REALTIME_SPEECH_END_MS
+              value: "360"
+            - name: REALTIME_MAX_TURN_MS
+              value: "10000"
+            - name: REALTIME_SESSION_RESUMPTION
+              value: "true"
+            - name: REALTIME_WS_RECONNECT_MS
+              value: "250"
+            - name: REALTIME_WS_PING_INTERVAL_S
+              value: "30"
+            - name: REALTIME_WS_PING_TIMEOUT_S
+              value: "60"
+            - name: REALTIME_WS_OPEN_TIMEOUT_S
+              value: "20"
+            - name: REALTIME_WS_CLOSE_TIMEOUT_S
+              value: "10"
+            - name: REALTIME_WS_MAX_QUEUE
+              value: "64"
+            - name: REALTIME_WS_WRITE_LIMIT
+              value: "262144"
+            - name: HYBRID_INTERVENTION_COOLDOWN_S
+              value: "18"
+            - name: REALTIME_DEBUG
+              value: "false"
+            - name: CONTROL_BASE_URL
+              value: http://127.0.0.1:3001
+            - name: BOT_ID
+              value: bot-01
+            - name: MEETING_ID
+              value: meetmind-session
+            - name: HOST
+              value: 0.0.0.0
+            - name: DEBUG
+              value: "false"
+          resources:
+            limits:
+              cpu: "1"
+              memory: 2Gi
+        - name: meet-control-server
+          image: __IMAGE_BASE__/meet-control-server:latest
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: PORT
+              value: "3001"
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 24
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          volumeMounts:
+            - name: shared-tmp
+              mountPath: /app/tmp
+        - name: meet-bot
+          image: __IMAGE_BASE__/meet-bot:latest
+          command:
+            - npm
+          args:
+            - run
+            - start:supervisor
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: PORT
+              value: "3000"
+            - name: BOT_ID
+              value: bot-01
+            - name: BOT_DISPLAY_NAME
+              value: MeetMind AI
+            - name: CONTROL_BASE_URL
+              value: http://127.0.0.1:3001
+            - name: COMMAND_LONG_POLL_MS
+              value: "1000"
+            - name: CHAT_POLL_INTERVAL_MS
+              value: "250"
+            - name: CAPTION_POLL_INTERVAL_MS
+              value: "250"
+            - name: ENABLE_AUDIO_INPUT
+              value: "true"
+            - name: AUDIO_SEGMENT_DURATION_MS
+              value: "1200"
+            - name: AUDIO_SEGMENT_COOLDOWN_MS
+              value: "50"
+            - name: MEET_AUDIO_INPUT_FORMAT
+              value: pulse
+            - name: MEET_AUDIO_INPUT_DEVICE
+              value: meetbot_meeting_sink.monitor
+            - name: ENABLE_VIDEO_INPUT
+              value: "true"
+            - name: CAPTURE_VIDEO_FRAMES
+              value: "true"
+            - name: ENABLE_VIDEO_ACTIVITY
+              value: "false"
+            - name: VIDEO_POLL_INTERVAL_MS
+              value: "500"
+            - name: VIDEO_JPEG_QUALITY
+              value: "55"
+            - name: STT_COMMAND
+              value: python3 /app/scripts/faster_whisper_transcribe.py {input}
+            - name: FASTER_WHISPER_MODEL
+              value: base
+            - name: FASTER_WHISPER_DEVICE
+              value: cpu
+            - name: TTS_BACKEND
+              value: piper
+            - name: PIPER_PATH
+              value: /opt/piper/piper
+            - name: PIPER_MODEL
+              value: /models/piper/en_US-lessac-medium.onnx
+            - name: SPEECH_DELIVERY_MODE
+              value: meeting-microphone
+            - name: AUDIO_OUTPUT_BACKEND
+              value: paplay
+            - name: AUDIO_OUTPUT_DEVICE
+              value: meetbot_sink
+            - name: PULSE_LATENCY_MSEC
+              value: "20"
+            - name: MEET_AUDIO_SINK_NAME
+              value: meetbot_sink
+            - name: MEET_AUDIO_SINK_VOLUME
+              value: 100%
+            - name: MEET_AUDIO_OUTPUT_SINK_NAME
+              value: meetbot_meeting_sink
+            - name: MEET_AUDIO_SOURCE_NAME
+              value: meetbot_mic
+            - name: MEET_AUDIO_SOURCE_VOLUME
+              value: 100%
+            - name: MEET_AUDIO_SINK_DESCRIPTION
+              value: MeetBot_Virtual_Mic_Sink
+            - name: MEET_AUDIO_OUTPUT_SINK_DESCRIPTION
+              value: MeetBot_Meeting_Playback
+            - name: MEET_AUDIO_SOURCE_DESCRIPTION
+              value: MeetBot_Virtual_Microphone
+            - name: MEET_PREFERRED_MICROPHONE_LABEL
+              value: MeetBot_Virtual_Microphone
+            - name: REALTIME_PUBLIC_HOST
+              value: 127.0.0.1
+            - name: REALTIME_AGENT_AUDIO_RTP_PORT
+              value: "5004"
+            - name: REALTIME_AGENT_AUDIO_LISTEN_TIMEOUT_S
+              value: "3600"
+            - name: REALTIME_AGENT_AUDIO_FILTER
+              value: highpass=f=70,lowpass=f=9000,acompressor=threshold=-18dB:ratio=2.5:attack=5:release=60:makeup=1,alimiter=limit=0.88:level=disabled
+            - name: REALTIME_AGENT_AUDIO_SAMPLE_RATE
+              value: "24000"
+            - name: REALTIME_AGENT_AUDIO_CHANNELS
+              value: "1"
+            - name: REALTIME_MEETING_AUDIO_RTP_URL
+              value: rtp://127.0.0.1:5006
+            - name: REALTIME_MEETING_AUDIO_SAMPLE_RATE
+              value: "16000"
+            - name: REALTIME_MEETING_AUDIO_CHANNELS
+              value: "1"
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 36
+          resources:
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          volumeMounts:
+            - name: shared-tmp
+              mountPath: /app/tmp
+      volumes:
+        - name: shared-tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi
