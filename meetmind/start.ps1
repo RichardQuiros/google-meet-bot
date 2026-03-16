@@ -56,9 +56,9 @@ Write-Host "[OK] Vertex AI API enabled" -ForegroundColor Green
 
 # Step 6: Create Application Default Credentials
 Write-Host ""
-Write-Host "Setting up authentication..." -ForegroundColor Yellow
+Write-Host "Setting up authentication from the local gcloud profile..." -ForegroundColor Yellow
 
-# Check if ADC already exists
+# ADC must live in the standard gcloud profile path, never inside the repository.
 $adcPath = "$env:APPDATA\gcloud\application_default_credentials.json"
 if (-not (Test-Path $adcPath)) {
     Write-Host "You need to authenticate with Google Cloud." -ForegroundColor Yellow
@@ -70,6 +70,7 @@ if (-not (Test-Path $adcPath)) {
 if (Test-Path $adcPath) {
     $env:GOOGLE_ADC_PATH = $adcPath
     Write-Host "[OK] Application Default Credentials found" -ForegroundColor Green
+    Write-Host "[OK] Using ADC outside the repository: $env:GOOGLE_ADC_PATH" -ForegroundColor Green
 } else {
     Write-Host "ERROR: ADC not found at $adcPath" -ForegroundColor Red
     Write-Host "Run: gcloud auth application-default login" -ForegroundColor Yellow

@@ -8,6 +8,20 @@
 *.code-workspace
 *.log
 
+# Secrets / cloud credentials
+.gcloud/
+.gcloud-adc/
+.secrets/
+secrets/
+application_default_credentials.json
+client_secret*.json
+service-account*.json
+*-service-account*.json
+*-credentials.json
+*.pem
+*.p12
+*.p8
+
 node_modules/
 dist/
 coverage/

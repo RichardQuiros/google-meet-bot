@@ -65,7 +65,8 @@ POST /speak → meet-control-server → meet-bot → TTS → PulseAudio → Meet
 
 ### Prerequisites
 - Docker and Docker Compose
-- Google Cloud account with Gemini API key
+- Google Cloud account with Vertex AI enabled
+- `gcloud` CLI authenticated on your machine
 - Google account for the bot to use
 
 ### 1. Clone and configure
@@ -73,16 +74,20 @@ POST /speak → meet-control-server → meet-bot → TTS → PulseAudio → Meet
 git clone https://github.com/YOUR_USERNAME/meetmind.git
 cd meetmind
 
-# Configure your Gemini API key
-cp meetmind-agent/.env.example meetmind-agent/.env
-# Edit .env and set GOOGLE_API_KEY
+# Create local ADC outside the repo
+gcloud auth application-default login
+
+# Point Docker Compose at your local ADC file
+# Windows PowerShell:
+$env:GOOGLE_ADC_PATH="$env:APPDATA\\gcloud\\application_default_credentials.json"
+# macOS / Linux:
+export GOOGLE_ADC_PATH="$HOME/.config/gcloud/application_default_credentials.json"
 ```
+
+Never copy `application_default_credentials.json`, `.gcloud`, or `.gcloud-adc` into this repository.
 
 ### 2. Run with Docker Compose
 ```bash
-# Set your API key
-export GOOGLE_API_KEY=your_key_here
-
 # Launch all 3 services
 docker-compose up --build
 ```
